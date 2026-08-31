@@ -1,0 +1,862 @@
+{
+  "data": {
+    "presentation": {
+      "slug": "ernie-emma",
+      "legacySlug": null,
+      "show": {
+        "slug": "ernie-emma",
+        "legacySlug": null,
+        "title": "Ernie & Emma",
+        "vistaHoCodes": [
+          "A000036699"
+        ],
+        "headline": "A road trip with Bruce Campbell goes somewhere unexpected.",
+        "description": "<p>Who doesn't love Bruce Campbell? After decades battling Deadites and stealing scenes, he\u2019s back with something altogether different. This poignant road-trip comedy\u2013written, directed by, and starring Bruce\u2013follows widowed pear salesman Ernie Tyler as he travels across Oregon to fulfill his late wife's very specific wishes for her ashes. Funny, gently offbeat, and full of heart, it's a reminder that Bruce's greatest superpower has never just been fighting monsters. It's telling a good story.</p>",
+        "landscapeHeroImage": {
+          "uri": "https://img-assets.drafthouse.com/images/shows/ernie-emma/ERNIE-EMMA_hero.jpg?auto=compress&crop=focalpoint&fit=crop&fp-x=0.5&fp-y=0.5&h=1080&q=80&w=1920",
+          "altText": "ERNIE & EMMA"
+        },
+        "portraitHeroImage": {
+          "uri": "https://img-assets.drafthouse.com/images/shows/ernie-emma/ERNIE-EMMA_portrait2.jpg?auto=compress&crop=focalpoint&fit=crop&fp-x=0.5&fp-y=0.5&h=1440&q=80&w=1080",
+          "altText": "ERNIE & EMMA"
+        },
+        "posterImages": [
+          {
+            "uri": "https://img-assets.drafthouse.com/images/shows/ernie-emma/ERNIE-EMMA_sp-poster.jpg?auto=compress&fit=clip&h=1620&q=80&w=1080",
+            "altText": "ERNIE & EMMA"
+          }
+        ],
+        "additionalStillImages": [],
+        "trailer": {
+          "image": {
+            "uri": "https://img-assets.drafthouse.com/images/shows/ernie-emma/ERNIE-EMMA_trailer.jpg?auto=compress&crop=focalpoint&fit=crop&fp-x=0.5&fp-y=0.5&h=1080&q=80&w=1920",
+            "altText": "ERNIE & EMMA trailer"
+          },
+          "source": "youtube",
+          "videoUri": "https://www.youtube.com/watch?v=NE1fmjcL4oc"
+        },
+        "runtimeMinutes": 90,
+        "nationalReleaseDateUtc": "2026-08-28",
+        "imdbId": null,
+        "movieXchangeId": null,
+        "certification": "R",
+        "genres": [],
+        "languages": [],
+        "actors": [],
+        "directors": [],
+        "producers": [],
+        "writers": [],
+        "distributors": [],
+        "productionCompanies": [],
+        "websiteUrl": null,
+        "facebookUrl": null,
+        "instagramUrl": null,
+        "twitterUrl": null,
+        "youTubeUrl": null,
+        "brandPriority": "ANNIHILATE",
+        "useDeluxeDescription": false,
+        "contentBlocks": []
+      },
+      "event": null,
+      "eventType": null,
+      "formatSlugs": [
+        "2d-digital"
+      ],
+      "presentationAttributeSlugs": [
+        "first-run"
+      ],
+      "associatedPresentationSlugs": [
+        "live-q-a-ernie-emma"
+      ],
+      "openingDateClt": null,
+      "openingDateDisplay": null,
+      "superTitle": null,
+      "isHidden": false,
+      "primaryCollectionSlug": null,
+      "isAvailableForPersonalTheater": false
+    },
+    "market": {
+      "id": "1700",
+      "slug": "los-angeles",
+      "name": "Los Angeles",
+      "status": "OPEN",
+      "subscriptionProgramStatus": "OPEN",
+      "isOpenAccessSeasonPassMarket": true,
+      "isOpenForBusiness": true,
+      "isFoodPreorderRequired": false,
+      "foodPreorderAvailability": "NONE",
+      "isMaxSafetyOperation": false,
+      "cinemas": [
+        {
+          "id": "1701",
+          "loyaltyCinemaId": "46",
+          "slug": "downtown",
+          "name": "DTLA",
+          "status": "OPEN",
+          "timeZoneName": "America/Los_Angeles",
+          "latitude": 34.0482,
+          "longitude": -118.2588,
+          "street1": "700 W. 7th Street",
+          "street2": "Ste. U240",
+          "city": "Los Angeles",
+          "state": "CA",
+          "postalCode": "90017",
+          "phone": "213-217-9027",
+          "email": "",
+          "heroImageUrl": "https://crafthouse-assets-prod.s3.amazonaws.com/images/venues/downtown/alamo-329977.jpg",
+          "googleMapsUrl": "https://www.google.com/maps/place/Alamo+Drafthouse+Cinema+Downtown+Los+Angeles/@34.0483595,-118.2609484,17z/data=!3m1!4b1!4m5!3m4!1s0x80c2c7b6a0fb82ad:0x6eb98ee35b597093!8m2!3d34.0483595!4d-118.2587597",
+          "appleMapsUrl": null,
+          "attachedBar": {
+            "name": "Video Vortex - Downtown",
+            "websiteUrl": "https://drafthouse.com/los-angeles/theater-bar/downtown"
+          },
+          "isClosedCaptioningAvailable": true,
+          "isDescriptiveAudioAvailable": true,
+          "isAssistedListeningAvailable": true,
+          "menus": {
+            "theaterMenuPdf": "https://crafthouse-assets-prod.s3.amazonaws.com/files/venues/downtown/ADC_CoreMenu_Tier4_DTLA_Digital_8-26-26.pdf"
+          },
+          "foodPreorderAvailability": "NONE",
+          "parkingNotice": "<p>Directions & Parking<br />https://drafthouse.com/los-angeles/theater/downtown#theater-directions</p>",
+          "postPurchaseNotice": {
+            "title": "Directions & Parking",
+            "description": "https://drafthouse.com/los-angeles/theater/downtown#theater-directions"
+          },
+          "isWageNoticeDisplayed": false,
+          "adyenPaymentEnabled": false
+        }
+      ],
+      "marketStrings": [
+        {
+          "key": "closedCaptioning",
+          "value": "The personal closed captioning device displays feature film dialogue and other audio in the form of English-language text for individuals who are deaf or hard of hearing."
+        },
+        {
+          "key": "descriptiveAudio",
+          "value": "The descriptive audio headset provides individuals who are blind or have low vision with an English-language narration of the details of the feature presentation that can't be understood by the soundtrack alone."
+        },
+        {
+          "key": "assistedListening",
+          "value": "Upon request at the box office, we provide assistive listening headsets with amplified audio for those individuals who are hard of hearing. For guests who prefer to use their own hearing aids, neck loops, or cochlear implants, our assistive listening headsets have a 3.5mm headphone jack to connect to those devices."
+        },
+        {
+          "key": "latePolicy",
+          "value": "In order to ensure the highest quality experience for all guests, you may not enter a movie after it has started. We\u2019d love to see you up to 30 minutes early. Running late? No worries, we will happily exchange your ticket for a different showtime or a raincheck to a future show."
+        }
+      ]
+    },
+    "sessions": [
+      {
+        "cinemaId": "9999",
+        "sessionId": "117035",
+        "presentationSlug": "ernie-emma",
+        "legacySlug": "ernie-emma",
+        "status": "ONSALE",
+        "businessDateClt": "2026-09-05",
+        "showTimeClt": "2026-09-05T16:00:00",
+        "cinemaTimeZoneName": "America/Los_Angeles",
+        "showTimeUtc": "2026-09-05T23:00:00",
+        "ticketTypesLoyaltyCount": 7,
+        "ticketTypesVoucherCount": 3,
+        "ticketTypesNormalCount": 2,
+        "reservedSeating": true,
+        "screenNumber": "1",
+        "formatSlug": "2d-digital",
+        "isClosedCaptioningAvailable": false,
+        "isDescriptiveAudioAvailable": false,
+        "isAssistedListeningAvailable": false,
+        "sessionAttributeSlugs": [
+          "Digital"
+        ],
+        "recognitionIds": [
+          "0",
+          "321",
+          "322",
+          "323",
+          "324",
+          "383",
+          "384",
+          "385",
+          "386",
+          "387",
+          "394",
+          "395",
+          "396",
+          "397",
+          "398",
+          "389",
+          "390",
+          "441",
+          "440"
+        ],
+        "agePolicySlug": "rated-pg-13",
+        "isHidden": false,
+        "ticketingExperience": "DEFAULT"
+      },
+      {
+        "cinemaId": "1701",
+        "sessionId": "117036",
+        "presentationSlug": "ernie-emma",
+        "legacySlug": "ernie-emma",
+        "status": "ONSALE",
+        "businessDateClt": "2026-09-06",
+        "showTimeClt": "2026-09-06T16:00:00",
+        "cinemaTimeZoneName": "America/Los_Angeles",
+        "showTimeUtc": "2026-09-06T23:00:00",
+        "ticketTypesLoyaltyCount": 7,
+        "ticketTypesVoucherCount": 3,
+        "ticketTypesNormalCount": 2,
+        "reservedSeating": true,
+        "screenNumber": "1",
+        "formatSlug": "2d-digital",
+        "isClosedCaptioningAvailable": false,
+        "isDescriptiveAudioAvailable": false,
+        "isAssistedListeningAvailable": false,
+        "sessionAttributeSlugs": [
+          "Digital"
+        ],
+        "recognitionIds": [
+          "0",
+          "321",
+          "322",
+          "323",
+          "324",
+          "383",
+          "384",
+          "385",
+          "386",
+          "387",
+          "394",
+          "395",
+          "396",
+          "397",
+          "398",
+          "389",
+          "390",
+          "441",
+          "440"
+        ],
+        "agePolicySlug": "rated-pg-13",
+        "isHidden": false,
+        "ticketingExperience": "DEFAULT"
+      },
+      {
+        "cinemaId": "1701",
+        "sessionId": "117037",
+        "presentationSlug": "ernie-emma",
+        "legacySlug": "ernie-emma",
+        "status": "ONSALE",
+        "businessDateClt": "2026-09-07",
+        "showTimeClt": "2026-09-07T16:00:00",
+        "cinemaTimeZoneName": "America/Los_Angeles",
+        "showTimeUtc": "2026-09-07T23:00:00",
+        "ticketTypesLoyaltyCount": 7,
+        "ticketTypesVoucherCount": 3,
+        "ticketTypesNormalCount": 2,
+        "reservedSeating": true,
+        "screenNumber": "1",
+        "formatSlug": "2d-digital",
+        "isClosedCaptioningAvailable": false,
+        "isDescriptiveAudioAvailable": false,
+        "isAssistedListeningAvailable": false,
+        "sessionAttributeSlugs": [
+          "Digital"
+        ],
+        "recognitionIds": [
+          "0",
+          "321",
+          "322",
+          "323",
+          "324",
+          "383",
+          "384",
+          "385",
+          "386",
+          "387",
+          "394",
+          "395",
+          "396",
+          "397",
+          "398",
+          "389",
+          "390",
+          "441",
+          "440"
+        ],
+        "agePolicySlug": "rated-pg-13",
+        "isHidden": false,
+        "ticketingExperience": "DEFAULT"
+      },
+      {
+        "cinemaId": "1701",
+        "sessionId": "117038",
+        "presentationSlug": "ernie-emma",
+        "legacySlug": "ernie-emma",
+        "status": "ONSALE",
+        "businessDateClt": "2026-09-08",
+        "showTimeClt": "2026-09-08T16:45:00",
+        "cinemaTimeZoneName": "America/Los_Angeles",
+        "showTimeUtc": "2026-09-08T23:45:00",
+        "ticketTypesLoyaltyCount": 8,
+        "ticketTypesVoucherCount": 1,
+        "ticketTypesNormalCount": 1,
+        "reservedSeating": true,
+        "screenNumber": "1",
+        "formatSlug": "2d-digital",
+        "isClosedCaptioningAvailable": false,
+        "isDescriptiveAudioAvailable": false,
+        "isAssistedListeningAvailable": false,
+        "sessionAttributeSlugs": [
+          "Digital"
+        ],
+        "recognitionIds": [
+          "0",
+          "321",
+          "322",
+          "323",
+          "324",
+          "383",
+          "384",
+          "385",
+          "386",
+          "387",
+          "394",
+          "395",
+          "396",
+          "397",
+          "398",
+          "389",
+          "390",
+          "441",
+          "440"
+        ],
+        "agePolicySlug": "rated-pg-13",
+        "isHidden": false,
+        "ticketingExperience": "DEFAULT"
+      },
+      {
+        "cinemaId": "1701",
+        "sessionId": "117039",
+        "presentationSlug": "ernie-emma",
+        "legacySlug": "ernie-emma",
+        "status": "ONSALE",
+        "businessDateClt": "2026-09-09",
+        "showTimeClt": "2026-09-09T16:00:00",
+        "cinemaTimeZoneName": "America/Los_Angeles",
+        "showTimeUtc": "2026-09-09T23:00:00",
+        "ticketTypesLoyaltyCount": 7,
+        "ticketTypesVoucherCount": 3,
+        "ticketTypesNormalCount": 2,
+        "reservedSeating": true,
+        "screenNumber": "1",
+        "formatSlug": "2d-digital",
+        "isClosedCaptioningAvailable": false,
+        "isDescriptiveAudioAvailable": false,
+        "isAssistedListeningAvailable": false,
+        "sessionAttributeSlugs": [
+          "Digital"
+        ],
+        "recognitionIds": [
+          "0",
+          "321",
+          "322",
+          "323",
+          "324",
+          "383",
+          "384",
+          "385",
+          "386",
+          "387",
+          "394",
+          "395",
+          "396",
+          "397",
+          "398",
+          "389",
+          "390",
+          "441",
+          "440"
+        ],
+        "agePolicySlug": "rated-pg-13",
+        "isHidden": false,
+        "ticketingExperience": "DEFAULT"
+      },
+      {
+        "cinemaId": "1701",
+        "sessionId": "117040",
+        "presentationSlug": "ernie-emma",
+        "legacySlug": "ernie-emma",
+        "status": "ONSALE",
+        "businessDateClt": "2026-09-10",
+        "showTimeClt": "2026-09-10T16:00:00",
+        "cinemaTimeZoneName": "America/Los_Angeles",
+        "showTimeUtc": "2026-09-10T23:00:00",
+        "ticketTypesLoyaltyCount": 7,
+        "ticketTypesVoucherCount": 3,
+        "ticketTypesNormalCount": 2,
+        "reservedSeating": true,
+        "screenNumber": "1",
+        "formatSlug": "2d-digital",
+        "isClosedCaptioningAvailable": false,
+        "isDescriptiveAudioAvailable": false,
+        "isAssistedListeningAvailable": false,
+        "sessionAttributeSlugs": [
+          "Digital"
+        ],
+        "recognitionIds": [
+          "0",
+          "321",
+          "322",
+          "323",
+          "324",
+          "383",
+          "384",
+          "385",
+          "386",
+          "387",
+          "394",
+          "395",
+          "396",
+          "397",
+          "398",
+          "389",
+          "390",
+          "441",
+          "440"
+        ],
+        "agePolicySlug": "rated-pg-13",
+        "isHidden": false,
+        "ticketingExperience": "DEFAULT"
+      },
+      {
+        "cinemaId": "1701",
+        "sessionId": "117033",
+        "presentationSlug": "live-q-a-ernie-emma",
+        "legacySlug": "live-q-a-ernie-emma",
+        "status": "SOLDOUT",
+        "businessDateClt": "2026-09-04",
+        "showTimeClt": "2026-09-04T19:00:00",
+        "cinemaTimeZoneName": "America/Los_Angeles",
+        "showTimeUtc": "2026-09-05T02:00:00",
+        "ticketTypesLoyaltyCount": 7,
+        "ticketTypesVoucherCount": 3,
+        "ticketTypesNormalCount": 2,
+        "reservedSeating": true,
+        "screenNumber": "1",
+        "formatSlug": "2d-digital",
+        "isClosedCaptioningAvailable": false,
+        "isDescriptiveAudioAvailable": false,
+        "isAssistedListeningAvailable": false,
+        "sessionAttributeSlugs": [
+          "Digital"
+        ],
+        "recognitionIds": [
+          "0",
+          "321",
+          "322",
+          "323",
+          "324",
+          "383",
+          "384",
+          "385",
+          "386",
+          "387",
+          "394",
+          "395",
+          "396",
+          "397",
+          "398",
+          "389",
+          "390",
+          "441",
+          "440"
+        ],
+        "agePolicySlug": "rated-pg-13",
+        "isHidden": false,
+        "ticketingExperience": "DEFAULT"
+      },
+      {
+        "cinemaId": "1701",
+        "sessionId": "118790",
+        "presentationSlug": "live-q-a-ernie-emma",
+        "legacySlug": "live-q-a-ernie-emma",
+        "status": "ONSALE",
+        "businessDateClt": "2026-09-04",
+        "showTimeClt": "2026-09-04T19:30:00",
+        "cinemaTimeZoneName": "America/Los_Angeles",
+        "showTimeUtc": "2026-09-05T02:30:00",
+        "ticketTypesLoyaltyCount": 7,
+        "ticketTypesVoucherCount": 3,
+        "ticketTypesNormalCount": 2,
+        "reservedSeating": true,
+        "screenNumber": "2",
+        "formatSlug": "2d-digital",
+        "isClosedCaptioningAvailable": false,
+        "isDescriptiveAudioAvailable": false,
+        "isAssistedListeningAvailable": false,
+        "sessionAttributeSlugs": [
+          "Digital"
+        ],
+        "recognitionIds": [
+          "0",
+          "321",
+          "322",
+          "323",
+          "324",
+          "383",
+          "384",
+          "385",
+          "386",
+          "387",
+          "394",
+          "395",
+          "396",
+          "397",
+          "398",
+          "389",
+          "390",
+          "441",
+          "440"
+        ],
+        "agePolicySlug": "rated-pg-13",
+        "isHidden": false,
+        "ticketingExperience": "DEFAULT"
+      },
+      {
+        "cinemaId": "1701",
+        "sessionId": "117034",
+        "presentationSlug": "live-q-a-ernie-emma",
+        "legacySlug": "live-q-a-ernie-emma",
+        "status": "ONSALE",
+        "businessDateClt": "2026-09-04",
+        "showTimeClt": "2026-09-04T21:45:00",
+        "cinemaTimeZoneName": "America/Los_Angeles",
+        "showTimeUtc": "2026-09-05T04:45:00",
+        "ticketTypesLoyaltyCount": 7,
+        "ticketTypesVoucherCount": 3,
+        "ticketTypesNormalCount": 2,
+        "reservedSeating": true,
+        "screenNumber": "1",
+        "formatSlug": "2d-digital",
+        "isClosedCaptioningAvailable": false,
+        "isDescriptiveAudioAvailable": false,
+        "isAssistedListeningAvailable": false,
+        "sessionAttributeSlugs": [
+          "Digital"
+        ],
+        "recognitionIds": [
+          "0",
+          "321",
+          "322",
+          "323",
+          "324",
+          "383",
+          "384",
+          "385",
+          "386",
+          "387",
+          "394",
+          "395",
+          "396",
+          "397",
+          "398",
+          "389",
+          "390",
+          "441",
+          "440"
+        ],
+        "agePolicySlug": "rated-pg-13",
+        "isHidden": false,
+        "ticketingExperience": "DEFAULT"
+      },
+      {
+        "cinemaId": "1701",
+        "sessionId": "118791",
+        "presentationSlug": "live-q-a-ernie-emma",
+        "legacySlug": "live-q-a-ernie-emma",
+        "status": "ONSALE",
+        "businessDateClt": "2026-09-04",
+        "showTimeClt": "2026-09-04T22:15:00",
+        "cinemaTimeZoneName": "America/Los_Angeles",
+        "showTimeUtc": "2026-09-05T05:15:00",
+        "ticketTypesLoyaltyCount": 7,
+        "ticketTypesVoucherCount": 3,
+        "ticketTypesNormalCount": 2,
+        "reservedSeating": true,
+        "screenNumber": "2",
+        "formatSlug": "2d-digital",
+        "isClosedCaptioningAvailable": false,
+        "isDescriptiveAudioAvailable": false,
+        "isAssistedListeningAvailable": false,
+        "sessionAttributeSlugs": [
+          "Digital"
+        ],
+        "recognitionIds": [
+          "0",
+          "321",
+          "322",
+          "323",
+          "324",
+          "383",
+          "384",
+          "385",
+          "386",
+          "387",
+          "394",
+          "395",
+          "396",
+          "397",
+          "398",
+          "389",
+          "390",
+          "441",
+          "440"
+        ],
+        "agePolicySlug": "rated-pg-13",
+        "isHidden": false,
+        "ticketingExperience": "DEFAULT"
+      }
+    ],
+    "presentations": [
+      {
+        "slug": "ernie-emma",
+        "legacySlug": null,
+        "show": {
+          "slug": "ernie-emma",
+          "legacySlug": null,
+          "title": "Ernie & Emma",
+          "vistaHoCodes": [
+            "A000036699"
+          ],
+          "headline": "A road trip with Bruce Campbell goes somewhere unexpected.",
+          "description": "<p>Who doesn't love Bruce Campbell? After decades battling Deadites and stealing scenes, he\u2019s back with something altogether different. This poignant road-trip comedy\u2013written, directed by, and starring Bruce\u2013follows widowed pear salesman Ernie Tyler as he travels across Oregon to fulfill his late wife's very specific wishes for her ashes. Funny, gently offbeat, and full of heart, it's a reminder that Bruce's greatest superpower has never just been fighting monsters. It's telling a good story.</p>",
+          "landscapeHeroImage": {
+            "uri": "https://img-assets.drafthouse.com/images/shows/ernie-emma/ERNIE-EMMA_hero.jpg?auto=compress&crop=focalpoint&fit=crop&fp-x=0.5&fp-y=0.5&h=1080&q=80&w=1920",
+            "altText": "ERNIE & EMMA"
+          },
+          "portraitHeroImage": {
+            "uri": "https://img-assets.drafthouse.com/images/shows/ernie-emma/ERNIE-EMMA_portrait2.jpg?auto=compress&crop=focalpoint&fit=crop&fp-x=0.5&fp-y=0.5&h=1440&q=80&w=1080",
+            "altText": "ERNIE & EMMA"
+          },
+          "posterImages": [
+            {
+              "uri": "https://img-assets.drafthouse.com/images/shows/ernie-emma/ERNIE-EMMA_sp-poster.jpg?auto=compress&fit=clip&h=1620&q=80&w=1080",
+              "altText": "ERNIE & EMMA"
+            }
+          ],
+          "additionalStillImages": [],
+          "trailer": {
+            "image": {
+              "uri": "https://img-assets.drafthouse.com/images/shows/ernie-emma/ERNIE-EMMA_trailer.jpg?auto=compress&crop=focalpoint&fit=crop&fp-x=0.5&fp-y=0.5&h=1080&q=80&w=1920",
+              "altText": "ERNIE & EMMA trailer"
+            },
+            "source": "youtube",
+            "videoUri": "https://www.youtube.com/watch?v=NE1fmjcL4oc"
+          },
+          "runtimeMinutes": 90,
+          "nationalReleaseDateUtc": "2026-08-28",
+          "imdbId": null,
+          "movieXchangeId": null,
+          "certification": "R",
+          "genres": [],
+          "languages": [],
+          "actors": [],
+          "directors": [],
+          "producers": [],
+          "writers": [],
+          "distributors": [],
+          "productionCompanies": [],
+          "websiteUrl": null,
+          "facebookUrl": null,
+          "instagramUrl": null,
+          "twitterUrl": null,
+          "youTubeUrl": null,
+          "brandPriority": "ANNIHILATE",
+          "useDeluxeDescription": false,
+          "contentBlocks": []
+        },
+        "event": null,
+        "eventType": null,
+        "formatSlugs": [
+          "2d-digital"
+        ],
+        "presentationAttributeSlugs": [
+          "first-run"
+        ],
+        "associatedPresentationSlugs": [
+          "live-q-a-ernie-emma"
+        ],
+        "openingDateClt": null,
+        "openingDateDisplay": null,
+        "superTitle": null,
+        "isHidden": false,
+        "primaryCollectionSlug": null,
+        "isAvailableForPersonalTheater": false
+      },
+      {
+        "slug": "live-q-a-ernie-emma",
+        "legacySlug": null,
+        "show": {
+          "slug": "ernie-emma",
+          "legacySlug": null,
+          "title": "Ernie & Emma",
+          "vistaHoCodes": [
+            "A000036699"
+          ],
+          "headline": "A road trip with Bruce Campbell goes somewhere unexpected.",
+          "description": "<p>Who doesn't love Bruce Campbell? After decades battling Deadites and stealing scenes, he\u2019s back with something altogether different. This poignant road-trip comedy\u2013written, directed by, and starring Bruce\u2013follows widowed pear salesman Ernie Tyler as he travels across Oregon to fulfill his late wife's very specific wishes for her ashes. Funny, gently offbeat, and full of heart, it's a reminder that Bruce's greatest superpower has never just been fighting monsters. It's telling a good story.</p>",
+          "landscapeHeroImage": {
+            "uri": "https://img-assets.drafthouse.com/images/shows/ernie-emma/ERNIE-EMMA_hero.jpg?auto=compress&crop=focalpoint&fit=crop&fp-x=0.5&fp-y=0.5&h=1080&q=80&w=1920",
+            "altText": "ERNIE & EMMA"
+          },
+          "portraitHeroImage": {
+            "uri": "https://img-assets.drafthouse.com/images/shows/ernie-emma/ERNIE-EMMA_portrait2.jpg?auto=compress&crop=focalpoint&fit=crop&fp-x=0.5&fp-y=0.5&h=1440&q=80&w=1080",
+            "altText": "ERNIE & EMMA"
+          },
+          "posterImages": [
+            {
+              "uri": "https://img-assets.drafthouse.com/images/shows/ernie-emma/ERNIE-EMMA_sp-poster.jpg?auto=compress&fit=clip&h=1620&q=80&w=1080",
+              "altText": "ERNIE & EMMA"
+            }
+          ],
+          "additionalStillImages": [],
+          "trailer": {
+            "image": {
+              "uri": "https://img-assets.drafthouse.com/images/shows/ernie-emma/ERNIE-EMMA_trailer.jpg?auto=compress&crop=focalpoint&fit=crop&fp-x=0.5&fp-y=0.5&h=1080&q=80&w=1920",
+              "altText": "ERNIE & EMMA trailer"
+            },
+            "source": "youtube",
+            "videoUri": "https://www.youtube.com/watch?v=NE1fmjcL4oc"
+          },
+          "runtimeMinutes": 90,
+          "nationalReleaseDateUtc": "2026-08-28",
+          "imdbId": null,
+          "movieXchangeId": null,
+          "certification": "R",
+          "genres": [],
+          "languages": [],
+          "actors": [],
+          "directors": [],
+          "producers": [],
+          "writers": [],
+          "distributors": [],
+          "productionCompanies": [],
+          "websiteUrl": null,
+          "facebookUrl": null,
+          "instagramUrl": null,
+          "twitterUrl": null,
+          "youTubeUrl": null,
+          "brandPriority": "ANNIHILATE",
+          "useDeluxeDescription": false,
+          "contentBlocks": []
+        },
+        "event": {
+          "slug": "live-q-a-ernie-emma",
+          "title": "<show-title>Ernie & Emma</show-title><event-type-title> with Live Q&A</event-type-title>",
+          "eventTypeSlug": "live-q-a",
+          "eventTypeTitleOverride": null,
+          "headline": "A groovy night with Bruce Campbell.",
+          "description": "<p>Bruce Campbell is bringing his latest film to Alamo Drafthouse, and he's sticking around afterward. See the legendary actor, writer, director, producer, and all-around raconteur in person for a special screening followed by a live Q&amp;A. Before the conversation, you'll catch his funny, heartfelt road-trip comedy about a widower carrying out his late wife's final wishes across Oregon. Come for the movie. Stay to hear Bruce do what he does just as well as chainsawing Deadites: tell stories.</p>",
+          "vistaHoCodes": [
+            "A000036700"
+          ],
+          "cinemaSessionIds": [],
+          "landscapeHeroImage": null,
+          "portraitHeroImage": null,
+          "trailer": null,
+          "posterImage": null,
+          "additionalStillImages": [],
+          "showSlug": "ernie-emma",
+          "brandPriority": "BEST",
+          "certification": "R",
+          "runtimeMinutes": 90,
+          "includeShowDescription": true,
+          "useDeluxeDescription": false,
+          "contentBlocks": []
+        },
+        "eventType": {
+          "id": "1331",
+          "slug": "live-q-a",
+          "title": "Live Q&A",
+          "headline": "Exclusive conversations with actors and filmmakers",
+          "description": "<p>Got a question for the director? Wanna meet the cast? At our special Live Q&amp;A events, we follow the screening with an in-person discussion.</p>",
+          "titleTreatmentImage": {
+            "uri": "https://img-assets.drafthouse.com/images/categories/live-q-a/LiveQA_TT.png?auto=compress&fit=clip&q=80",
+            "altText": "Live QA TT"
+          },
+          "heroImage": {
+            "uri": "https://img-assets.drafthouse.com/images/categories/live-q-a/EventCategory_Web_Hero_LiveQA_1920x1080_2023-02-10-171030_ywuw.png?auto=compress&crop=focalpoint&fit=crop&fp-x=0.5&fp-y=0.5&h=1080&q=80&w=1920",
+            "altText": "Event Category Web Hero Live QA 1920x1080"
+          },
+          "titleCardImage": {
+            "uri": "https://img-assets.drafthouse.com/images/categories/live-q-a/EventCategory_Web_Hero_LiveQA_1920x1080_2023-02-10-171030_ywuw.jpg?auto=compress&crop=focalpoint&fit=crop&fp-x=0.5&fp-y=0.5&h=1080&q=80&w=1920",
+            "altText": "Event Category Web Hero Live QA 1920x1080 2023 02 10 171030 ywuw"
+          },
+          "collectionSlug": "live-q-a"
+        },
+        "formatSlugs": [
+          "2d-digital"
+        ],
+        "presentationAttributeSlugs": [
+          "alamo-exclusive"
+        ],
+        "associatedPresentationSlugs": [
+          "ernie-emma"
+        ],
+        "openingDateClt": null,
+        "openingDateDisplay": null,
+        "superTitle": null,
+        "isHidden": false,
+        "primaryCollectionSlug": null,
+        "isAvailableForPersonalTheater": false
+      }
+    ],
+    "presentationAttributes": [
+      {
+        "slug": "first-run",
+        "name": "New Releases",
+        "description": "New Releases",
+        "isUserVisible": true,
+        "isUserFilterable": true
+      },
+      {
+        "slug": "alamo-exclusive",
+        "name": "Only at the Alamo",
+        "description": "Alamo Drafthouse Specialty Programming",
+        "isUserVisible": true,
+        "isUserFilterable": true
+      }
+    ],
+    "sessionAttributes": [
+      {
+        "slug": "Digital",
+        "name": "Digital",
+        "description": null,
+        "isUserVisible": false,
+        "isUserFilterable": false
+      }
+    ],
+    "formats": [
+      {
+        "slug": "2d-digital",
+        "vistaSlug": "Digital",
+        "title": "2D Digital",
+        "headline": "Digital format projected using a digital projector.",
+        "description": "<p>Digital format projected using a digital projector.</p>",
+        "titleTreatmentImage": {
+          "uri": "https://img-assets.drafthouse.com/images/categories/1205/2d-tt.svg?auto=compress&fit=clip&q=80",
+          "altText": "2d tt"
+        },
+        "heroImage": null
+      }
+    ],
+    "agePolicies": [
+      {
+        "slug": "rated-pg-13",
+        "name": "Rated PG-13 (Standard)",
+        "description": "All minors under the age of 18 must be accompanied by an adult. Children ages 6+ admitted. Children 5 and under (including infants) are ONLY admitted during specifically designated \"All Ages\" and \"Family Friendly\" screenings."
+      }
+    ],
+    "queues": []
+  }
+}
