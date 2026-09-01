@@ -1,4 +1,4 @@
-// Feature 1-2: deserialize the two feed shapes from real captured fixtures.
+// Feature 1-2: deserialize the market feed — presentations and sessions.
 use std::fs;
 
 fn fixture(name: &str) -> String {
@@ -7,30 +7,39 @@ fn fixture(name: &str) -> String {
 }
 
 #[test]
-fn parses_featured_into_films() {
-    let films = alamo::parse_featured(&fixture("featured.json")).expect("parse featured");
-    assert_eq!(films.len(), 8, "featured feed currently lists 8 films");
+fn parses_presentations_from_market() {
+    let films = alamo::parse_presentations(&fixture("market.json")).expect("parse presentations");
+    assert_eq!(films.len(), 64, "market feed currently lists 64 presentations");
 
     let ernie = films
         .iter()
         .find(|f| f.slug == "ernie-emma")
-        .expect("ernie-emma present in featured");
+        .expect("ernie-emma present in market feed");
     assert_eq!(ernie.title, "Ernie & Emma");
     assert!(
         ernie.hero_uri.starts_with("https://img-assets.drafthouse.com/images/shows/ernie-emma/"),
         "hero_uri should be the landscape hero image, got: {}",
         ernie.hero_uri
     );
+
+    // Film.slug must be the presentation-level slug, not show.slug: this special
+    // event shares show `ernie-emma` but has its own presentation slug.
+    assert!(
+        films.iter().any(|f| f.slug == "live-q-a-ernie-emma"),
+        "presentation-level slug live-q-a-ernie-emma should be its own film"
+    );
 }
 
 #[test]
-fn parses_sessions_from_presentation_feed() {
+fn parses_sessions_from_market() {
+    // A single-presentation capture: 10 sessions across two presentation slugs.
     let sessions = alamo::parse_sessions(&fixture("ernie-emma.json")).expect("parse sessions");
-    assert_eq!(sessions.len(), 10, "ernie-emma has 10 sessions");
+    assert_eq!(sessions.len(), 10, "ernie-emma fixture has 10 sessions");
 
     let s = &sessions[0];
     assert_eq!(s.cinema_id, "1701");
     assert_eq!(s.show_time_clt, "2026-09-05T16:00:00");
     assert_eq!(s.show_time_utc, "2026-09-05T23:00:00");
     assert_eq!(s.business_date_clt, "2026-09-05");
+    assert_eq!(s.presentation_slug, "ernie-emma", "session carries its presentation slug");
 }

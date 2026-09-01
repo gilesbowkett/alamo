@@ -1,5 +1,5 @@
 // Feature 4-5: group_by_date, and building/sorting per-film schedules.
-use alamo::{group_by_date, parse_featured, parse_sessions, FilmSchedule, Session};
+use alamo::{group_by_date, parse_presentations, parse_sessions, FilmSchedule, Session};
 use chrono::{TimeZone, Utc};
 use std::fs;
 
@@ -9,6 +9,7 @@ fn fixture(name: &str) -> String {
 
 fn session(clt: &str, date: &str) -> Session {
     Session {
+        presentation_slug: "x".to_string(), // unused by group_by_date
         cinema_id: "1701".to_string(),
         show_time_clt: clt.to_string(),
         show_time_utc: format!("{clt}Z-ignored"), // unused by group_by_date
@@ -41,11 +42,17 @@ fn groups_by_date_ascending_with_times_sorted() {
     );
 }
 
+// Build a schedule the way build_page does: take a film from the feed and only
+// the sessions that join to it by presentation slug.
 fn schedule_from(fixture_name: &str, film_slug: &str, film_title: &str) -> FilmSchedule {
-    let films = parse_featured(&fixture("featured.json")).unwrap();
+    let films = parse_presentations(&fixture(fixture_name)).unwrap();
     let film = films.into_iter().find(|f| f.slug == film_slug).unwrap();
     assert_eq!(film.title, film_title);
-    let sessions = parse_sessions(&fixture(fixture_name)).unwrap();
+    let sessions: Vec<Session> = parse_sessions(&fixture(fixture_name))
+        .unwrap()
+        .into_iter()
+        .filter(|s| s.presentation_slug == film_slug)
+        .collect();
     // "now" before all sessions in either fixture so nothing is filtered as past.
     let now = Utc.with_ymd_and_hms(2026, 8, 1, 0, 0, 0).unwrap();
     FilmSchedule::build(film, &sessions, now).expect("film has future DTLA sessions")
@@ -64,13 +71,11 @@ fn sorts_films_by_earliest_showtime_avengers_last() {
     assert_eq!(films[0].film.slug, "ernie-emma", "September film sorts first");
     assert_eq!(films[1].film.slug, "avengers-doomsday", "December film sorts last");
 
-    // ernie-emma spans 7 DTLA dates (2026-09-04 .. 2026-09-10).
+    // The ernie-emma presentation (its own 6 sessions, not the live-Q&A's) spans
+    // 2026-09-05 .. 2026-09-10.
     let ernie_dates: Vec<&str> = films[0].dates.iter().map(|(d, _)| d.as_str()).collect();
     assert_eq!(
         ernie_dates,
-        vec![
-            "2026-09-04", "2026-09-05", "2026-09-06", "2026-09-07", "2026-09-08", "2026-09-09",
-            "2026-09-10"
-        ]
+        vec!["2026-09-05", "2026-09-06", "2026-09-07", "2026-09-08", "2026-09-09", "2026-09-10"]
     );
 }

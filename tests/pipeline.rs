@@ -1,4 +1,4 @@
-// Feature 9: build_page — the pure pipeline over real fixtures.
+// Feature 9: build_page — the pure pipeline over the whole market feed.
 use alamo::build_page;
 use chrono::{TimeZone, Utc};
 use std::fs;
@@ -8,52 +8,40 @@ fn fixture(name: &str) -> String {
 }
 
 #[test]
-fn orders_films_and_keeps_correct_dates() {
-    let featured = fixture("featured.json");
-    let films = [
-        ("avengers-doomsday", fixture("avengers-doomsday.json")),
-        ("ernie-emma", fixture("ernie-emma.json")),
-    ];
-    let film_refs: Vec<(&str, &str)> = films.iter().map(|(s, j)| (*s, j.as_str())).collect();
-    let now = Utc.with_ymd_and_hms(2026, 8, 1, 0, 0, 0).unwrap();
+fn renders_every_film_in_the_market_feed() {
+    let market = fixture("market.json");
+    let now = Utc.with_ymd_and_hms(2026, 8, 1, 0, 0, 0).unwrap(); // before all sessions
 
-    let html = build_page(&featured, &film_refs, now).unwrap();
+    let html = build_page(&market, now).unwrap();
 
-    // September film must render before the December film.
-    let ernie_at = html.find("Ernie &amp; Emma").expect("ernie present");
-    let avengers_at = html.find("Avengers: Doomsday").expect("avengers present");
-    assert!(ernie_at < avengers_at, "September film sorts before December film");
+    // One card per presentation with future DTLA sessions — far more than the
+    // old featured feed's 8.
+    let cards = html.matches("<article").count();
+    assert_eq!(cards, 64, "every market presentation renders its own card");
 
-    // Correct date labels present for each.
-    assert!(html.contains("Sat Sep 5"), "ernie September date");
-    assert!(html.contains("Thu Dec 17"), "avengers December date");
-    // ernie spans 7 days -> its earliest label is Fri Sep 4.
-    assert!(html.contains("Fri Sep 4"));
+    // Titles that were NOT in the featured feed must now appear.
+    assert!(html.contains("Practical Magic 2"), "non-featured film present");
+    assert!(html.contains("It Ends"), "non-featured film present");
 }
 
 #[test]
-fn drops_non_dtla_sessions() {
-    // mixed_cinemas.json = ernie-emma with one session flipped to cinema 9999.
-    let featured = fixture("featured.json");
-    let films = [("ernie-emma", fixture("mixed_cinemas.json"))];
-    let film_refs: Vec<(&str, &str)> = films.iter().map(|(s, j)| (*s, j.as_str())).collect();
+fn orders_films_soonest_first() {
+    let market = fixture("market.json");
     let now = Utc.with_ymd_and_hms(2026, 8, 1, 0, 0, 0).unwrap();
 
-    let html = build_page(&featured, &film_refs, now).unwrap();
-    let times = html.matches("class=\"time\"").count();
-    assert_eq!(times, 9, "10 sessions minus the one non-DTLA session = 9 showtimes");
+    let html = build_page(&market, now).unwrap();
+
+    // Spider-Man's earliest DTLA showtime (Sep 1) precedes Avengers' (Dec 17).
+    let spidey = html.find("Spider-Man: Brand New Day").expect("spider-man present");
+    let avengers = html.find("Avengers: Doomsday").expect("avengers present");
+    assert!(spidey < avengers, "September film sorts before December film");
 }
 
 #[test]
 fn far_future_now_drops_all_past_sessions() {
-    let featured = fixture("featured.json");
-    let films = [
-        ("ernie-emma", fixture("ernie-emma.json")),
-        ("avengers-doomsday", fixture("avengers-doomsday.json")),
-    ];
-    let film_refs: Vec<(&str, &str)> = films.iter().map(|(s, j)| (*s, j.as_str())).collect();
-    let now = Utc.with_ymd_and_hms(2027, 1, 1, 0, 0, 0).unwrap(); // after everything
+    let market = fixture("market.json");
+    let now = Utc.with_ymd_and_hms(2028, 1, 1, 0, 0, 0).unwrap(); // after everything
 
-    let html = build_page(&featured, &film_refs, now).unwrap();
-    assert!(!html.contains("<article"), "no films should render when all sessions are past");
+    let html = build_page(&market, now).unwrap();
+    assert!(!html.contains("<article"), "no films render when all sessions are past");
 }

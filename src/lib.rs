@@ -3,11 +3,12 @@
 
 use chrono::{DateTime, NaiveDate, NaiveDateTime, Utc};
 use serde::Deserialize;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 
 pub const DTLA_CINEMA_ID: &str = "1701";
 
-/// A film from the featured feed: what we need to render its card header.
+/// A film (presentation) from the market feed: what we need to render its card
+/// header. `slug` is the presentation-level slug — the key sessions join on.
 #[derive(Debug, Clone)]
 pub struct Film {
     pub slug: String,
@@ -15,9 +16,11 @@ pub struct Film {
     pub hero_uri: String,
 }
 
-/// One showtime session from a per-film presentation feed.
+/// One showtime session from the market feed. `presentation_slug` joins it to
+/// the `Film` whose showtime it is.
 #[derive(Debug, Clone)]
 pub struct Session {
+    pub presentation_slug: String,
     pub cinema_id: String,
     pub show_time_clt: String,
     pub show_time_utc: String,
@@ -27,20 +30,21 @@ pub struct Session {
 // --- Deserialization shapes: only the fields we consume; serde ignores the rest. ---
 
 #[derive(Deserialize)]
-struct FeaturedDoc {
-    data: FeaturedData,
+struct ScheduleDoc {
+    data: ScheduleData,
 }
 #[derive(Deserialize)]
-struct FeaturedData {
-    presentations: Vec<FeaturedPresentation>,
+struct ScheduleData {
+    presentations: Vec<SchedulePresentation>,
+    sessions: Vec<RawSession>,
 }
 #[derive(Deserialize)]
-struct FeaturedPresentation {
+struct SchedulePresentation {
+    slug: String,
     show: RawShow,
 }
 #[derive(Deserialize)]
 struct RawShow {
-    slug: String,
     title: String,
     #[serde(rename = "landscapeHeroImage")]
     landscape_hero_image: RawImage,
@@ -51,15 +55,9 @@ struct RawImage {
 }
 
 #[derive(Deserialize)]
-struct PresentationDoc {
-    data: PresentationData,
-}
-#[derive(Deserialize)]
-struct PresentationData {
-    sessions: Vec<RawSession>,
-}
-#[derive(Deserialize)]
 struct RawSession {
+    #[serde(rename = "presentationSlug")]
+    presentation_slug: String,
     #[serde(rename = "cinemaId")]
     cinema_id: String,
     #[serde(rename = "showTimeClt")]
@@ -174,23 +172,23 @@ pub fn is_dtla_future(session: &Session, now: DateTime<Utc>) -> bool {
     }
 }
 
-/// The pure pipeline: featured feed JSON + each film's presentation JSON (paired with
-/// its slug) + the current time → the finished HTML page. Films with no future DTLA
-/// sessions (or no provided JSON) are dropped; the rest are ordered soonest-first.
+/// The pure pipeline: the market feed JSON + the current time → the finished HTML
+/// page. Sessions are joined to their presentation by `presentation_slug`; films
+/// with no future DTLA session are dropped; the rest are ordered soonest-first.
 /// Propagates a JSON parse error rather than emitting a partial page.
-pub fn build_page(
-    featured_json: &str,
-    film_jsons: &[(&str, &str)],
-    now: DateTime<Utc>,
-) -> Result<String, serde_json::Error> {
-    let films = parse_featured(featured_json)?;
+pub fn build_page(market_json: &str, now: DateTime<Utc>) -> Result<String, serde_json::Error> {
+    let films = parse_presentations(market_json)?;
+    let sessions = parse_sessions(market_json)?;
+
+    let mut by_slug: HashMap<String, Vec<Session>> = HashMap::new();
+    for s in sessions {
+        by_slug.entry(s.presentation_slug.clone()).or_default().push(s);
+    }
+
     let mut schedules = Vec::new();
     for film in films {
-        let Some((_, json)) = film_jsons.iter().find(|(slug, _)| *slug == film.slug) else {
-            continue; // no presentation JSON supplied for this film
-        };
-        let sessions = parse_sessions(json)?;
-        if let Some(sched) = FilmSchedule::build(film, &sessions, now) {
+        let film_sessions = by_slug.get(&film.slug).map(Vec::as_slice).unwrap_or(&[]);
+        if let Some(sched) = FilmSchedule::build(film, film_sessions, now) {
             schedules.push(sched);
         }
     }
@@ -253,29 +251,30 @@ pub fn sort_films(films: &mut [FilmSchedule]) {
     films.sort_by_key(|f| f.earliest);
 }
 
-/// Parse the featured feed JSON into the films it lists.
-pub fn parse_featured(json: &str) -> Result<Vec<Film>, serde_json::Error> {
-    let doc: FeaturedDoc = serde_json::from_str(json)?;
+/// Parse the market feed JSON into the presentations (films) it lists.
+pub fn parse_presentations(json: &str) -> Result<Vec<Film>, serde_json::Error> {
+    let doc: ScheduleDoc = serde_json::from_str(json)?;
     Ok(doc
         .data
         .presentations
         .into_iter()
         .map(|p| Film {
-            slug: p.show.slug,
+            slug: p.slug,
             title: p.show.title,
             hero_uri: p.show.landscape_hero_image.uri,
         })
         .collect())
 }
 
-/// Parse a per-film presentation feed JSON into its sessions.
+/// Parse the market feed JSON into all of its sessions.
 pub fn parse_sessions(json: &str) -> Result<Vec<Session>, serde_json::Error> {
-    let doc: PresentationDoc = serde_json::from_str(json)?;
+    let doc: ScheduleDoc = serde_json::from_str(json)?;
     Ok(doc
         .data
         .sessions
         .into_iter()
         .map(|s| Session {
+            presentation_slug: s.presentation_slug,
             cinema_id: s.cinema_id,
             show_time_clt: s.show_time_clt,
             show_time_utc: s.show_time_utc,

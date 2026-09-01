@@ -5,6 +5,7 @@ use std::fs;
 
 fn session(cinema: &str, utc: &str) -> Session {
     Session {
+        presentation_slug: "ernie-emma".to_string(),
         cinema_id: cinema.to_string(),
         show_time_clt: "2026-09-05T16:00:00".to_string(),
         show_time_utc: utc.to_string(),
