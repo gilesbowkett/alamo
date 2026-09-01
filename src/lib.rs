@@ -2,7 +2,7 @@
 // All network I/O lives in main.rs; everything here is pure and unit-tested.
 
 use chrono::{DateTime, NaiveDate, NaiveDateTime, Utc};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap};
 use std::error::Error;
 
@@ -119,6 +119,57 @@ pub fn html_escape(s: &str) -> String {
     out
 }
 
+// The compiled Elm visibility-toggle app (built by build.rs), inlined so the
+// page stays self-contained.
+const ELM_JS: &str = include_str!(concat!(env!("OUT_DIR"), "/elm.js"));
+
+// Boots one Elm instance per film, feeding it that film's showtimes as flags.
+const INIT_JS: &str = "<script>\n\
+(function () {\n\
+  var nodes = document.querySelectorAll('.film-toggle');\n\
+  for (var i = 0; i < nodes.length; i++) {\n\
+    Elm.Main.init({ node: nodes[i], flags: JSON.parse(nodes[i].getAttribute('data-flags')) });\n\
+  }\n\
+})();\n\
+</script>\n";
+
+// --- Elm flags: a film's showtimes as already-formatted strings. ---
+#[derive(Serialize)]
+struct Flags {
+    days: Vec<FlagDay>,
+}
+#[derive(Serialize)]
+struct FlagDay {
+    date: String,
+    times: Vec<FlagSlot>,
+}
+#[derive(Serialize)]
+struct FlagSlot {
+    label: String,
+    href: String,
+}
+
+/// Serialize a film's showtimes into the JSON the Elm toggle app decodes.
+/// `base` is the film's Drafthouse URL (`presentation_url`); each showtime links
+/// to it with the day's date appended.
+fn film_flags_json(film: &FilmSchedule, base: &str) -> String {
+    let days = film
+        .dates
+        .iter()
+        .map(|(date, times)| FlagDay {
+            date: fmt_date(date),
+            times: times
+                .iter()
+                .map(|t| FlagSlot {
+                    label: fmt_time(t),
+                    href: format!("{base}&date={date}"),
+                })
+                .collect(),
+        })
+        .collect();
+    serde_json::to_string(&Flags { days }).expect("flags serialize")
+}
+
 /// Render the full HTML page for the given films (already filtered and sorted).
 pub fn render_page(films: &[FilmSchedule]) -> String {
     let mut h = String::new();
@@ -128,7 +179,10 @@ pub fn render_page(films: &[FilmSchedule]) -> String {
     h.push_str("<title>Alamo Drafthouse DTLA — Upcoming Showtimes</title>\n");
     h.push_str("<style>\n");
     h.push_str(STYLE);
-    h.push_str("</style>\n</head>\n<body>\n");
+    h.push_str("</style>\n");
+    h.push_str("<script>");
+    h.push_str(ELM_JS);
+    h.push_str("</script>\n</head>\n<body>\n");
     h.push_str("<h1>Alamo Drafthouse DTLA — Upcoming Showtimes</h1>\n");
 
     for film in films {
@@ -152,28 +206,16 @@ pub fn render_page(films: &[FilmSchedule]) -> String {
         h.push_str(&format!(
             "    <a class=\"rt\" href=\"{rt}\" target=\"_blank\" rel=\"noopener\">check rotten tomatoes</a>\n"
         ));
-        h.push_str("    <div class=\"showtimes\">\n");
-        for (date, times) in &film.dates {
-            let day = html_escape(&fmt_date(date));
-            let href = html_escape(&format!("{base}&date={date}"));
-            let slots: Vec<String> = times
-                .iter()
-                .map(|t| {
-                    format!(
-                        "<a class=\"time\" href=\"{href}\" target=\"_blank\" rel=\"noopener\">{}</a>",
-                        html_escape(&fmt_time(t))
-                    )
-                })
-                .collect();
-            h.push_str(&format!(
-                "      <div class=\"day\"><strong class=\"date\">{day}</strong>\
-                 <div class=\"times\">{}</div></div>\n",
-                slots.join(" ")
-            ));
-        }
-        h.push_str("    </div>\n  </div>\n</article>\n");
+        // Per-film Elm toggle: the showtimes ride along as flags and are hidden
+        // until the visitor clicks "show dates/times".
+        let flags = html_escape(&film_flags_json(film, &base));
+        h.push_str(&format!(
+            "    <div class=\"film-toggle\" data-flags=\"{flags}\"></div>\n"
+        ));
+        h.push_str("  </div>\n</article>\n");
     }
 
+    h.push_str(INIT_JS);
     h.push_str("</body>\n</html>\n");
     h
 }
@@ -192,9 +234,15 @@ const STYLE: &str = r#"
           border-radius: 8px; background: #eee; }
   .film h2 { font-size: 1.25rem; margin: 0 0 0.5rem; }
   .film h2 a { color: inherit; text-decoration: none; }
-  .rt { display: block; font-variant: small-caps; color: #d00;
-        text-decoration: none; font-size: 0.8rem; margin: 0 0 0.6rem; }
-  .showtimes { display: flex; flex-direction: column; gap: 0.4rem; }
+  .rt { font-variant: small-caps; color: #d00; text-decoration: none;
+        font-size: 0.8rem; margin-right: 0.75rem; }
+  .toggle { font-variant: small-caps; color: #06c; text-decoration: none;
+            font-size: 0.8rem; cursor: pointer; }
+  /* The mount and Elm's view root vanish from layout so the toggle sits inline
+     next to .rt while the showtimes drop to their own line below. */
+  .film-toggle, .contents { display: contents; }
+  .showtimes { display: flex; flex-direction: column; gap: 0.4rem;
+               margin-top: 0.6rem; }
   .day { display: grid; grid-template-columns: 6.5rem 1fr; align-items: baseline;
          gap: 0.4rem 0.6rem; }
   .date { color: #444; }

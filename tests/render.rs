@@ -56,26 +56,18 @@ fn renders_full_document_with_film_content() {
 }
 
 #[test]
-fn renders_two_column_structure() {
+fn renders_two_column_card() {
     let html = render_page(&[sample_film("Ernie & Emma")]);
 
-    // Both new wrappers exist.
     assert!(html.contains("<div class=\"film-main\">"), "right-column wrapper present");
-    assert!(html.contains("<div class=\"times\">"), "day's time-column wrapper present");
 
-    // Card is hero (left) then film-main (right, holding the showtimes).
+    // Card is hero (left) then film-main (right), which holds the per-film
+    // toggle mount (showtimes themselves are rendered by Elm from its flags).
     let hero = html.find("class=\"hero\"").expect("hero present");
     let main = html.find("class=\"film-main\"").expect("film-main present");
-    let showtimes = html.find("class=\"showtimes\"").expect("showtimes present");
+    let toggle = html.find("class=\"film-toggle\"").expect("toggle mount present");
     assert!(hero < main, "hero comes before the right column");
-    assert!(main < showtimes, "showtimes live inside film-main");
-
-    // Day row is date (left) then a .times column containing the .time span.
-    let date = html.find("class=\"date\"").expect("date present");
-    let times = html.find("class=\"times\"").expect("times column present");
-    let time = html.find("class=\"time\"").expect("time span present");
-    assert!(date < times, "date is the left column");
-    assert!(times < time, "the time span sits inside the .times column");
+    assert!(main < toggle, "the toggle mount lives inside film-main");
 }
 
 #[test]
@@ -109,33 +101,33 @@ fn links_to_rotten_tomatoes_search() {
               target=\"_blank\" rel=\"noopener\">check rotten tomatoes</a>";
     assert!(html.contains(rt), "RT search link present, got:\n{html}");
 
-    // It sits under the title, above the showtimes.
+    // It sits under the title, before the toggle mount.
     let title = html.find("</h2>").expect("title present");
     let rt_at = html.find("class=\"rt\"").expect("rt link present");
-    let showtimes = html.find("class=\"showtimes\"").expect("showtimes present");
+    let toggle = html.find("class=\"film-toggle\"").expect("toggle mount present");
     assert!(title < rt_at, "RT link comes after the title");
-    assert!(rt_at < showtimes, "RT link comes before the showtimes");
+    assert!(rt_at < toggle, "RT link comes before the toggle");
 }
 
 #[test]
-fn links_showtimes_to_their_show_date() {
-    // Each time chip is an anchor to the film's page with the row's date appended
-    // (the `&` escaped for the attribute).
+fn emits_showtime_flags_for_the_toggle_app() {
     let html = render_page(&[sample_film("Ernie & Emma")]);
-    assert!(
-        html.contains(
-            "<a class=\"time\" \
-             href=\"https://drafthouse.com/los-angeles/show/ernie-emma?cinemaId=1701&amp;date=2026-09-05\" \
-             target=\"_blank\" rel=\"noopener\">4:00 PM</a>"
-        ),
-        "time chip links to the show-date URL, got:\n{html}"
-    );
 
-    // Events use the /event/ base, still with the date appended.
-    let ev = render_page(&[sample_film_kind("Live Q&A", true)]);
+    // The static page carries a per-film Elm mount with the showtimes as flags,
+    // rather than server-rendered showtime markup or a static toggle label.
     assert!(
-        ev.contains("https://drafthouse.com/event/ernie-emma?cinemaId=1701&amp;date=2026-09-05"),
-        "event time chip links to the /event/ show-date URL"
+        html.contains("<div class=\"film-toggle\" data-flags=\""),
+        "per-film toggle mount with flags present, got:\n{html}"
+    );
+    assert!(!html.contains("<div class=\"showtimes\">"), "showtimes are not server-rendered");
+
+    // The flags (HTML-escaped JSON in the attribute) carry the day label, the
+    // time label, and the show-date href.
+    assert!(html.contains("Sat Sep 5"), "day label present in flags");
+    assert!(html.contains("4:00 PM"), "time label present in flags");
+    assert!(
+        html.contains("los-angeles/show/ernie-emma?cinemaId=1701&amp;date=2026-09-05"),
+        "show-date href present in flags, got:\n{html}"
     );
 }
 
