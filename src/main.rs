@@ -19,11 +19,18 @@ fn run() -> Result<(), Box<dyn Error>> {
         .user_agent(USER_AGENT)
         .build()?;
 
-    let market_json = client
+    let response = client
         .get(MARKET_URL)
-        .send()?
-        .error_for_status()? // 4xx/5xx -> abort
-        .text()?;
+        .send()
+        .and_then(|r| r.error_for_status()) // 4xx/5xx -> abort
+        .map_err(|e| format!("GET {MARKET_URL} failed: {}", alamo::error_chain(&e)))?;
+
+    let market_json = response.text().map_err(|e| {
+        format!(
+            "GET {MARKET_URL} succeeded but decoding the response body failed: {}",
+            alamo::error_chain(&e)
+        )
+    })?;
 
     let html = alamo::build_page(&market_json, Utc::now())?;
     print!("{html}");

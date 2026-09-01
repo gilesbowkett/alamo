@@ -26,11 +26,16 @@ fn escapes_html_special_chars() {
 }
 
 fn sample_film(title: &str) -> FilmSchedule {
+    sample_film_kind(title, false)
+}
+
+fn sample_film_kind(title: &str, is_event: bool) -> FilmSchedule {
     FilmSchedule {
         film: Film {
             slug: "ernie-emma".to_string(),
             title: title.to_string(),
             hero_uri: "https://img-assets.drafthouse.com/images/shows/ernie-emma/HERO.jpg".to_string(),
+            is_event,
         },
         dates: vec![("2026-09-05".to_string(), vec!["2026-09-05T16:00:00".to_string()])],
         earliest: Utc.with_ymd_and_hms(2026, 9, 5, 23, 0, 0).unwrap(),
@@ -71,6 +76,28 @@ fn renders_two_column_structure() {
     let time = html.find("class=\"time\"").expect("time span present");
     assert!(date < times, "date is the left column");
     assert!(times < time, "the time span sits inside the .times column");
+}
+
+#[test]
+fn links_hero_and_title() {
+    // Regular show: hero anchor + title anchor, both to the /show/ URL.
+    let html = render_page(&[sample_film("Ernie & Emma")]);
+    let show_url = "https://drafthouse.com/los-angeles/show/ernie-emma?cinemaId=1701";
+    assert!(
+        html.contains(&format!("<a class=\"hero-link\" href=\"{show_url}\">")),
+        "hero is wrapped in a link to the show URL"
+    );
+    assert!(
+        html.contains(&format!("<h2><a href=\"{show_url}\">")),
+        "title is wrapped in a link to the show URL"
+    );
+
+    // Event presentations link under /event/ instead.
+    let ev = render_page(&[sample_film_kind("Live Q&A", true)]);
+    assert!(
+        ev.contains("href=\"https://drafthouse.com/event/ernie-emma?cinemaId=1701\""),
+        "event card links to the /event/ URL"
+    );
 }
 
 #[test]

@@ -31,6 +31,26 @@ fn parses_presentations_from_market() {
 }
 
 #[test]
+fn builds_show_and_event_urls() {
+    let films = alamo::parse_presentations(&fixture("market.json")).expect("parse presentations");
+    let find = |slug: &str| films.iter().find(|f| f.slug == slug).unwrap();
+
+    let show = find("tony");
+    assert!(!show.is_event, "a regular presentation is not an event");
+    assert_eq!(
+        alamo::presentation_url(show),
+        "https://drafthouse.com/los-angeles/show/tony?cinemaId=1701"
+    );
+
+    let event = find("the-twilight-saga-twilight-2008-fan-event");
+    assert!(event.is_event, "a presentation with an `event` object is an event");
+    assert_eq!(
+        alamo::presentation_url(event),
+        "https://drafthouse.com/event/the-twilight-saga-twilight-2008-fan-event?cinemaId=1701"
+    );
+}
+
+#[test]
 fn parses_sessions_from_market() {
     // A single-presentation capture: 10 sessions across two presentation slugs.
     let sessions = alamo::parse_sessions(&fixture("ernie-emma.json")).expect("parse sessions");

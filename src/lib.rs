@@ -4,6 +4,21 @@
 use chrono::{DateTime, NaiveDate, NaiveDateTime, Utc};
 use serde::Deserialize;
 use std::collections::{BTreeMap, HashMap};
+use std::error::Error;
+
+/// Format an error and its `source()` chain as "msg: cause: deeper-cause", so a
+/// terse top-level message (e.g. reqwest's "error decoding response body") is
+/// reported alongside its real underlying cause.
+pub fn error_chain(err: &dyn Error) -> String {
+    let mut out = err.to_string();
+    let mut src = err.source();
+    while let Some(e) = src {
+        out.push_str(": ");
+        out.push_str(&e.to_string());
+        src = e.source();
+    }
+    out
+}
 
 pub const DTLA_CINEMA_ID: &str = "1701";
 
@@ -14,6 +29,8 @@ pub struct Film {
     pub slug: String,
     pub title: String,
     pub hero_uri: String,
+    /// True when this presentation is an `/event/` page rather than a `/show/`.
+    pub is_event: bool,
 }
 
 /// One showtime session from the market feed. `presentation_slug` joins it to
@@ -42,6 +59,9 @@ struct ScheduleData {
 struct SchedulePresentation {
     slug: String,
     show: RawShow,
+    // Present (non-null) only for event pages; its contents are irrelevant here.
+    #[serde(default)]
+    event: Option<serde::de::IgnoredAny>,
 }
 #[derive(Deserialize)]
 struct RawShow {
@@ -114,12 +134,14 @@ pub fn render_page(films: &[FilmSchedule]) -> String {
     for film in films {
         let title = html_escape(&film.film.title);
         let hero = html_escape(&film.film.hero_uri);
+        let url = html_escape(&presentation_url(&film.film));
         h.push_str("<article class=\"film\">\n");
         h.push_str(&format!(
-            "  <img class=\"hero\" src=\"{hero}\" alt=\"{title}\" loading=\"lazy\">\n"
+            "  <a class=\"hero-link\" href=\"{url}\">\
+             <img class=\"hero\" src=\"{hero}\" alt=\"{title}\" loading=\"lazy\"></a>\n"
         ));
         h.push_str("  <div class=\"film-main\">\n");
-        h.push_str(&format!("    <h2>{title}</h2>\n"));
+        h.push_str(&format!("    <h2><a href=\"{url}\">{title}</a></h2>\n"));
         h.push_str("    <div class=\"showtimes\">\n");
         for (date, times) in &film.dates {
             let day = html_escape(&fmt_date(date));
@@ -149,9 +171,11 @@ const STYLE: &str = r#"
   .film { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem 1.25rem;
           align-items: start; margin: 0 0 2.5rem; }
   .film-main { min-width: 0; }
+  .hero-link { display: block; }
   .hero { display: block; width: 100%; max-width: 100%; height: auto;
           border-radius: 8px; background: #eee; }
   .film h2 { font-size: 1.25rem; margin: 0 0 0.5rem; }
+  .film h2 a { color: inherit; text-decoration: none; }
   .showtimes { display: flex; flex-direction: column; gap: 0.4rem; }
   .day { display: grid; grid-template-columns: 6.5rem 1fr; align-items: baseline;
          gap: 0.4rem 0.6rem; }
@@ -268,8 +292,22 @@ pub fn parse_presentations(json: &str) -> Result<Vec<Film>, serde_json::Error> {
             slug: p.slug,
             title: p.show.title,
             hero_uri: p.show.landscape_hero_image.uri,
+            is_event: p.event.is_some(),
         })
         .collect())
+}
+
+/// The public Drafthouse URL for a film, scoped to the DTLA cinema. Event pages
+/// live under `/event/`; regular shows under `/los-angeles/show/`.
+pub fn presentation_url(film: &Film) -> String {
+    if film.is_event {
+        format!("https://drafthouse.com/event/{}?cinemaId={DTLA_CINEMA_ID}", film.slug)
+    } else {
+        format!(
+            "https://drafthouse.com/los-angeles/show/{}?cinemaId={DTLA_CINEMA_ID}",
+            film.slug
+        )
+    }
 }
 
 /// Parse the market feed JSON into all of its sessions.
