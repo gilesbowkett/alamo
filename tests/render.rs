@@ -103,6 +103,21 @@ fn links_hero_and_title() {
 }
 
 #[test]
+fn links_to_rotten_tomatoes_search() {
+    let html = render_page(&[sample_film("Ernie & Emma")]);
+    let rt = "<a class=\"rt\" href=\"https://www.rottentomatoes.com/search?search=ernie-emma\" \
+              target=\"_blank\" rel=\"noopener\">check rotten tomatoes</a>";
+    assert!(html.contains(rt), "RT search link present, got:\n{html}");
+
+    // It sits under the title, above the showtimes.
+    let title = html.find("</h2>").expect("title present");
+    let rt_at = html.find("class=\"rt\"").expect("rt link present");
+    let showtimes = html.find("class=\"showtimes\"").expect("showtimes present");
+    assert!(title < rt_at, "RT link comes after the title");
+    assert!(rt_at < showtimes, "RT link comes before the showtimes");
+}
+
+#[test]
 fn links_showtimes_to_their_show_date() {
     // Each time chip is an anchor to the film's page with the row's date appended
     // (the `&` escaped for the attribute).

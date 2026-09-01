@@ -145,6 +145,13 @@ pub fn render_page(films: &[FilmSchedule]) -> String {
         h.push_str(&format!(
             "    <h2><a href=\"{url}\" target=\"_blank\" rel=\"noopener\">{title}</a></h2>\n"
         ));
+        let rt = html_escape(&format!(
+            "https://www.rottentomatoes.com/search?search={}",
+            film.film.slug
+        ));
+        h.push_str(&format!(
+            "    <a class=\"rt\" href=\"{rt}\" target=\"_blank\" rel=\"noopener\">check rotten tomatoes</a>\n"
+        ));
         h.push_str("    <div class=\"showtimes\">\n");
         for (date, times) in &film.dates {
             let day = html_escape(&fmt_date(date));
@@ -185,6 +192,8 @@ const STYLE: &str = r#"
           border-radius: 8px; background: #eee; }
   .film h2 { font-size: 1.25rem; margin: 0 0 0.5rem; }
   .film h2 a { color: inherit; text-decoration: none; }
+  .rt { display: block; font-variant: small-caps; color: #d00;
+        text-decoration: none; font-size: 0.8rem; margin: 0 0 0.6rem; }
   .showtimes { display: flex; flex-direction: column; gap: 0.4rem; }
   .day { display: grid; grid-template-columns: 6.5rem 1fr; align-items: baseline;
          gap: 0.4rem 0.6rem; }
