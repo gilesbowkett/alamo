@@ -143,7 +143,7 @@ pub fn render_page(films: &[FilmSchedule]) -> String {
 const STYLE: &str = r#"
   :root { color-scheme: light; }
   body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-         max-width: 720px; margin: 0 auto; padding: 1.5rem 1rem; line-height: 1.4;
+         margin: 0 auto; padding: 1.5rem 1rem; line-height: 1.4;
          color: #1a1a1a; background: #fff; }
   h1 { font-size: 1.6rem; margin: 0 0 1.5rem; }
   .film { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem 1.25rem;
@@ -159,7 +159,6 @@ const STYLE: &str = r#"
   .times { display: flex; flex-wrap: wrap; gap: 0.4rem; }
   .time { display: inline-block; padding: 0.15rem 0.5rem; border: 1px solid #ccc;
           border-radius: 4px; font-variant-numeric: tabular-nums; white-space: nowrap; }
-  @media (max-width: 480px) { .film { grid-template-columns: 1fr; } }
 "#;
 
 /// Parse an Alamo CLT/UTC timestamp string (e.g. "2026-09-05T23:00:00", no zone suffix).
