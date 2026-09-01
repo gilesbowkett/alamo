@@ -52,6 +52,7 @@ suite =
                         [ Query.has [ text "Alpha" ]
                         , Query.has [ text "Beta" ]
                         , Query.findAll [ class "remove" ] >> Query.count (Expect.equal 2)
+                        , Query.has [ text "\u{2717}" ]
                         ]
         , test "RemoveFilm drops that film, keeps the other" <|
             \_ ->

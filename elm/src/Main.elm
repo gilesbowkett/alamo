@@ -105,7 +105,7 @@ viewFilm id film =
         [ div [ class "hero-wrap" ]
             [ a [ class "hero-link", href film.url, target "_blank", rel "noopener" ]
                 [ img [ class "hero", src film.hero, alt film.title ] [] ]
-            , button [ class "remove", onClick (RemoveFilm id) ] [ text "\u{00D7}" ]
+            , button [ class "remove", onClick (RemoveFilm id) ] [ text "\u{2717}" ]
             ]
         , div [ class "film-main" ]
             [ h2 []
