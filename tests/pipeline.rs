@@ -14,10 +14,11 @@ fn renders_every_film_in_the_market_feed() {
 
     let html = build_page(&market, now).unwrap();
 
-    // One card per presentation with future DTLA sessions — far more than the
-    // old featured feed's 8.
-    let cards = html.matches("<article").count();
-    assert_eq!(cards, 64, "every market presentation renders its own card");
+    // One entry per presentation with future DTLA sessions in the container's
+    // flags — far more than the old featured feed's 8.
+    assert!(html.contains("<div id=\"app\" data-flags=\""), "container mount present");
+    let films = html.matches("&quot;id&quot;:&quot;").count();
+    assert_eq!(films, 64, "every market presentation appears in the flags");
 
     // Titles that were NOT in the featured feed must now appear.
     assert!(html.contains("Practical Magic 2"), "non-featured film present");
@@ -43,5 +44,5 @@ fn far_future_now_drops_all_past_sessions() {
     let now = Utc.with_ymd_and_hms(2028, 1, 1, 0, 0, 0).unwrap(); // after everything
 
     let html = build_page(&market, now).unwrap();
-    assert!(!html.contains("<article"), "no films render when all sessions are past");
+    assert!(html.contains("&quot;films&quot;:[]"), "flags carry no films when all sessions are past");
 }

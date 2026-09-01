@@ -56,78 +56,41 @@ fn renders_full_document_with_film_content() {
 }
 
 #[test]
-fn renders_two_column_card() {
+fn emits_container_mount_and_runtime() {
     let html = render_page(&[sample_film("Ernie & Emma")]);
 
-    assert!(html.contains("<div class=\"film-main\">"), "right-column wrapper present");
-
-    // Card is hero (left) then film-main (right), which holds the per-film
-    // toggle mount (showtimes themselves are rendered by Elm from its flags).
-    let hero = html.find("class=\"hero\"").expect("hero present");
-    let main = html.find("class=\"film-main\"").expect("film-main present");
-    let toggle = html.find("class=\"film-toggle\"").expect("toggle mount present");
-    assert!(hero < main, "hero comes before the right column");
-    assert!(main < toggle, "the toggle mount lives inside film-main");
+    // The whole film list is rendered by the container Elm app: one mount + the
+    // inlined runtime + an init call. No server-rendered cards.
+    assert!(html.contains("<div id=\"app\" data-flags=\""), "container mount present");
+    assert!(html.contains("Elm.Main.init"), "container is booted");
+    assert!(html.contains("Elm.Main"), "elm runtime is inlined");
+    assert!(!html.contains("<article"), "cards are not server-rendered");
+    assert!(!html.contains("<div class=\"showtimes\">"), "showtimes are not server-rendered");
 }
 
 #[test]
-fn links_hero_and_title() {
-    // Regular show: hero anchor + title anchor, both to the /show/ URL.
+fn container_flags_carry_each_films_data() {
+    // A /show/ film's flags carry id, title, hero, header url, RT url, and its
+    // showtimes (day label + time label + show-date href).
     let html = render_page(&[sample_film("Ernie & Emma")]);
-    let show_url = "https://drafthouse.com/los-angeles/show/ernie-emma?cinemaId=1701";
-    assert!(
-        html.contains(&format!(
-            "<a class=\"hero-link\" href=\"{show_url}\" target=\"_blank\" rel=\"noopener\">"
-        )),
-        "hero is wrapped in a new-tab link to the show URL"
-    );
-    assert!(
-        html.contains(&format!("<h2><a href=\"{show_url}\" target=\"_blank\" rel=\"noopener\">")),
-        "title is wrapped in a new-tab link to the show URL"
-    );
+    for needle in [
+        "&quot;id&quot;:&quot;ernie-emma&quot;", // JSON quotes are HTML-escaped in the attribute
+        "&quot;title&quot;:&quot;Ernie &amp; Emma&quot;",
+        "img-assets.drafthouse.com/images/shows/ernie-emma/HERO.jpg",
+        "los-angeles/show/ernie-emma?cinemaId=1701",
+        "rottentomatoes.com/search?search=ernie-emma",
+        "Sat Sep 5",
+        "4:00 PM",
+        "date=2026-09-05",
+    ] {
+        assert!(html.contains(needle), "flags should contain {needle:?}, got:\n{html}");
+    }
 
-    // Event presentations link under /event/ instead.
+    // Events use the /event/ base in their header/showtime URLs.
     let ev = render_page(&[sample_film_kind("Live Q&A", true)]);
     assert!(
-        ev.contains("href=\"https://drafthouse.com/event/ernie-emma?cinemaId=1701\""),
-        "event card links to the /event/ URL"
-    );
-}
-
-#[test]
-fn links_to_rotten_tomatoes_search() {
-    let html = render_page(&[sample_film("Ernie & Emma")]);
-    let rt = "<a class=\"rt\" href=\"https://www.rottentomatoes.com/search?search=ernie-emma\" \
-              target=\"_blank\" rel=\"noopener\">check rotten tomatoes</a>";
-    assert!(html.contains(rt), "RT search link present, got:\n{html}");
-
-    // It sits under the title, before the toggle mount.
-    let title = html.find("</h2>").expect("title present");
-    let rt_at = html.find("class=\"rt\"").expect("rt link present");
-    let toggle = html.find("class=\"film-toggle\"").expect("toggle mount present");
-    assert!(title < rt_at, "RT link comes after the title");
-    assert!(rt_at < toggle, "RT link comes before the toggle");
-}
-
-#[test]
-fn emits_showtime_flags_for_the_toggle_app() {
-    let html = render_page(&[sample_film("Ernie & Emma")]);
-
-    // The static page carries a per-film Elm mount with the showtimes as flags,
-    // rather than server-rendered showtime markup or a static toggle label.
-    assert!(
-        html.contains("<div class=\"film-toggle\" data-flags=\""),
-        "per-film toggle mount with flags present, got:\n{html}"
-    );
-    assert!(!html.contains("<div class=\"showtimes\">"), "showtimes are not server-rendered");
-
-    // The flags (HTML-escaped JSON in the attribute) carry the day label, the
-    // time label, and the show-date href.
-    assert!(html.contains("Sat Sep 5"), "day label present in flags");
-    assert!(html.contains("4:00 PM"), "time label present in flags");
-    assert!(
-        html.contains("los-angeles/show/ernie-emma?cinemaId=1701&amp;date=2026-09-05"),
-        "show-date href present in flags, got:\n{html}"
+        ev.contains("event/ernie-emma?cinemaId=1701"),
+        "event film links under /event/, got:\n{ev}"
     );
 }
 

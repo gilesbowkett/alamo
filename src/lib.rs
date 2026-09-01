@@ -123,19 +123,26 @@ pub fn html_escape(s: &str) -> String {
 // page stays self-contained.
 const ELM_JS: &str = include_str!(concat!(env!("OUT_DIR"), "/elm.js"));
 
-// Boots one Elm instance per film, feeding it that film's showtimes as flags.
+// Boots the container app with the whole film list as flags.
 const INIT_JS: &str = "<script>\n\
 (function () {\n\
-  var nodes = document.querySelectorAll('.film-toggle');\n\
-  for (var i = 0; i < nodes.length; i++) {\n\
-    Elm.Main.init({ node: nodes[i], flags: JSON.parse(nodes[i].getAttribute('data-flags')) });\n\
-  }\n\
+  var app = document.getElementById('app');\n\
+  Elm.Main.init({ node: app, flags: JSON.parse(app.getAttribute('data-flags')) });\n\
 })();\n\
 </script>\n";
 
-// --- Elm flags: a film's showtimes as already-formatted strings. ---
+// --- Elm flags: every film, with already-formatted strings. ---
 #[derive(Serialize)]
-struct Flags {
+struct PageFlags {
+    films: Vec<FilmFlag>,
+}
+#[derive(Serialize)]
+struct FilmFlag {
+    id: String,
+    title: String,
+    hero: String,
+    url: String,
+    rt: String,
     days: Vec<FlagDay>,
 }
 #[derive(Serialize)]
@@ -149,10 +156,10 @@ struct FlagSlot {
     href: String,
 }
 
-/// Serialize a film's showtimes into the JSON the Elm toggle app decodes.
-/// `base` is the film's Drafthouse URL (`presentation_url`); each showtime links
-/// to it with the day's date appended.
-fn film_flags_json(film: &FilmSchedule, base: &str) -> String {
+/// Build one film's flags: its header URL (`presentation_url`), Rotten Tomatoes
+/// search, and showtimes (each linking to the header URL with the day appended).
+fn film_flag(film: &FilmSchedule) -> FilmFlag {
+    let base = presentation_url(&film.film);
     let days = film
         .dates
         .iter()
@@ -167,7 +174,14 @@ fn film_flags_json(film: &FilmSchedule, base: &str) -> String {
                 .collect(),
         })
         .collect();
-    serde_json::to_string(&Flags { days }).expect("flags serialize")
+    FilmFlag {
+        id: film.film.slug.clone(),
+        title: film.film.title.clone(),
+        hero: film.film.hero_uri.clone(),
+        rt: format!("https://www.rottentomatoes.com/search?search={}", film.film.slug),
+        url: base,
+        days,
+    }
 }
 
 /// Render the full HTML page for the given films (already filtered and sorted).
@@ -185,35 +199,14 @@ pub fn render_page(films: &[FilmSchedule]) -> String {
     h.push_str("</script>\n</head>\n<body>\n");
     h.push_str("<h1>Alamo Drafthouse DTLA: Upcoming Showtimes</h1>\n");
 
-    for film in films {
-        let title = html_escape(&film.film.title);
-        let hero = html_escape(&film.film.hero_uri);
-        let base = presentation_url(&film.film);
-        let url = html_escape(&base);
-        h.push_str("<article class=\"film\">\n");
-        h.push_str(&format!(
-            "  <a class=\"hero-link\" href=\"{url}\" target=\"_blank\" rel=\"noopener\">\
-             <img class=\"hero\" src=\"{hero}\" alt=\"{title}\" loading=\"lazy\"></a>\n"
-        ));
-        h.push_str("  <div class=\"film-main\">\n");
-        h.push_str(&format!(
-            "    <h2><a href=\"{url}\" target=\"_blank\" rel=\"noopener\">{title}</a></h2>\n"
-        ));
-        let rt = html_escape(&format!(
-            "https://www.rottentomatoes.com/search?search={}",
-            film.film.slug
-        ));
-        h.push_str(&format!(
-            "    <a class=\"rt\" href=\"{rt}\" target=\"_blank\" rel=\"noopener\">check rotten tomatoes</a>\n"
-        ));
-        // Per-film Elm toggle: the showtimes ride along as flags and are hidden
-        // until the visitor clicks "show dates/times".
-        let flags = html_escape(&film_flags_json(film, &base));
-        h.push_str(&format!(
-            "    <div class=\"film-toggle\" data-flags=\"{flags}\"></div>\n"
-        ));
-        h.push_str("  </div>\n</article>\n");
-    }
+    // The container Elm app renders every card from these flags and owns the
+    // per-film remove/toggle interactions.
+    let flags = PageFlags { films: films.iter().map(film_flag).collect() };
+    let flags_json = serde_json::to_string(&flags).expect("flags serialize");
+    h.push_str(&format!(
+        "<div id=\"app\" data-flags=\"{}\"></div>\n",
+        html_escape(&flags_json)
+    ));
 
     h.push_str(INIT_JS);
     h.push_str("</body>\n</html>\n");
@@ -229,18 +222,25 @@ const STYLE: &str = r#"
   .film { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem 1.25rem;
           align-items: start; margin: 0 0 2.5rem; }
   .film-main { min-width: 0; }
+  .hero-wrap { position: relative; }
   .hero-link { display: block; }
   .hero { display: block; width: 100%; max-width: 100%; height: auto;
           border-radius: 8px; background: #eee; }
+  .remove { position: absolute; top: 0.4rem; left: 0.4rem;
+            width: 1.6rem; height: 1.6rem; padding: 0; border: none;
+            border-radius: 50%; background: rgba(0, 0, 0, 0.6); color: #fff;
+            font-size: 1rem; line-height: 1; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; }
+  .remove:hover { background: rgba(0, 0, 0, 0.85); }
   .film h2 { font-size: 1.25rem; margin: 0 0 0.5rem; }
   .film h2 a { color: inherit; text-decoration: none; }
   .rt { font-variant: small-caps; color: #d00; text-decoration: none;
         font-size: 0.8rem; margin-right: 0.75rem; }
   .toggle { font-variant: small-caps; color: #06c; text-decoration: none;
             font-size: 0.8rem; cursor: pointer; }
-  /* The mount and Elm's view root vanish from layout so the toggle sits inline
-     next to .rt while the showtimes drop to their own line below. */
-  .film-toggle, .contents { display: contents; }
+  /* Elm's toggle view root vanishes from layout so the toggle sits inline next
+     to .rt while the showtimes drop to their own line below. */
+  .contents { display: contents; }
   .showtimes { display: flex; flex-direction: column; gap: 0.4rem;
                margin-top: 0.6rem; }
   .day { display: grid; grid-template-columns: 6.5rem 1fr; align-items: baseline;

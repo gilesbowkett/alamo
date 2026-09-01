@@ -1,96 +1,120 @@
-module Main exposing (Day, Model, Msg(..), Slot, init, main, update, view)
+module Main exposing (Film, Model, Msg(..), init, main, update, view)
 
 import Browser
-import Html exposing (Html, a, div, strong, text)
-import Html.Attributes exposing (class, href, rel, target)
+import Dict exposing (Dict)
+import Html exposing (Html, a, article, button, div, h2, img, text)
+import Html.Attributes exposing (alt, class, href, rel, src, target)
 import Html.Events exposing (onClick)
 import Json.Decode as D
+import Toggle
 
 
-type alias Slot =
-    { label : String, href : String }
-
-
-type alias Day =
-    { date : String, times : List Slot }
+type alias Film =
+    { title : String
+    , hero : String
+    , url : String
+    , rt : String
+    , toggle : Toggle.Model
+    }
 
 
 type alias Model =
-    { open : Bool, days : List Day }
+    { order : List String
+    , films : Dict String Film
+    }
 
 
 type Msg
-    = Toggle
+    = RemoveFilm String
+    | ToggleMsg String Toggle.Msg
 
 
-slotDecoder : D.Decoder Slot
-slotDecoder =
-    D.map2 Slot (D.field "label" D.string) (D.field "href" D.string)
+
+-- INIT / FLAGS
 
 
-dayDecoder : D.Decoder Day
-dayDecoder =
-    D.map2 Day (D.field "date" D.string) (D.field "times" (D.list slotDecoder))
+filmDecoder : D.Decoder ( String, Film )
+filmDecoder =
+    D.map6
+        (\id title hero url rt days ->
+            ( id, Film title hero url rt (Toggle.init days) )
+        )
+        (D.field "id" D.string)
+        (D.field "title" D.string)
+        (D.field "hero" D.string)
+        (D.field "url" D.string)
+        (D.field "rt" D.string)
+        Toggle.daysDecoder
 
 
-daysDecoder : D.Decoder (List Day)
-daysDecoder =
-    D.field "days" (D.list dayDecoder)
+flagsDecoder : D.Decoder (List ( String, Film ))
+flagsDecoder =
+    D.field "films" (D.list filmDecoder)
 
 
 init : D.Value -> ( Model, Cmd Msg )
 init flags =
-    ( { open = False
-      , days = Result.withDefault [] (D.decodeValue daysDecoder flags)
+    let
+        pairs =
+            Result.withDefault [] (D.decodeValue flagsDecoder flags)
+    in
+    ( { order = List.map Tuple.first pairs
+      , films = Dict.fromList pairs
       }
     , Cmd.none
     )
 
 
+
+-- UPDATE
+
+
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        Toggle ->
-            ( { model | open = not model.open }, Cmd.none )
+        RemoveFilm id ->
+            ( { model
+                | films = Dict.remove id model.films
+                , order = List.filter (\i -> i /= id) model.order
+              }
+            , Cmd.none
+            )
+
+        ToggleMsg id sub ->
+            ( { model
+                | films =
+                    Dict.update id (Maybe.map (\f -> { f | toggle = Toggle.update sub f.toggle })) model.films
+              }
+            , Cmd.none
+            )
+
+
+
+-- VIEW
 
 
 view : Model -> Html Msg
 view model =
-    let
-        label =
-            if model.open then
-                "hide dates/times"
-
-            else
-                "show dates/times"
-
-        rest =
-            if model.open then
-                [ viewShowtimes model.days ]
-
-            else
-                []
-    in
-    div [ class "contents" ]
-        (a [ class "toggle", onClick Toggle ] [ text label ] :: rest)
+    div []
+        (List.filterMap (\id -> Maybe.map (viewFilm id) (Dict.get id model.films)) model.order)
 
 
-viewShowtimes : List Day -> Html Msg
-viewShowtimes days =
-    div [ class "showtimes" ] (List.map viewDay days)
-
-
-viewDay : Day -> Html Msg
-viewDay day =
-    div [ class "day" ]
-        [ strong [ class "date" ] [ text day.date ]
-        , div [ class "times" ] (List.map viewSlot day.times)
+viewFilm : String -> Film -> Html Msg
+viewFilm id film =
+    article [ class "film" ]
+        [ div [ class "hero-wrap" ]
+            [ a [ class "hero-link", href film.url, target "_blank", rel "noopener" ]
+                [ img [ class "hero", src film.hero, alt film.title ] [] ]
+            , button [ class "remove", onClick (RemoveFilm id) ] [ text "\u{00D7}" ]
+            ]
+        , div [ class "film-main" ]
+            [ h2 []
+                [ a [ href film.url, target "_blank", rel "noopener" ] [ text film.title ] ]
+            , a [ class "rt", href film.rt, target "_blank", rel "noopener" ]
+                [ text "check rotten tomatoes" ]
+            , Html.map (ToggleMsg id) (Toggle.view film.toggle)
+            ]
         ]
-
-
-viewSlot : Slot -> Html Msg
-viewSlot slot =
-    a [ class "time", href slot.href, target "_blank", rel "noopener" ] [ text slot.label ]
 
 
 main : Program D.Value Model Msg
