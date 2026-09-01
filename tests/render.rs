@@ -103,6 +103,28 @@ fn links_hero_and_title() {
 }
 
 #[test]
+fn links_showtimes_to_their_show_date() {
+    // Each time chip is an anchor to the film's page with the row's date appended
+    // (the `&` escaped for the attribute).
+    let html = render_page(&[sample_film("Ernie & Emma")]);
+    assert!(
+        html.contains(
+            "<a class=\"time\" \
+             href=\"https://drafthouse.com/los-angeles/show/ernie-emma?cinemaId=1701&amp;date=2026-09-05\" \
+             target=\"_blank\" rel=\"noopener\">4:00 PM</a>"
+        ),
+        "time chip links to the show-date URL, got:\n{html}"
+    );
+
+    // Events use the /event/ base, still with the date appended.
+    let ev = render_page(&[sample_film_kind("Live Q&A", true)]);
+    assert!(
+        ev.contains("https://drafthouse.com/event/ernie-emma?cinemaId=1701&amp;date=2026-09-05"),
+        "event time chip links to the /event/ show-date URL"
+    );
+}
+
+#[test]
 fn render_escapes_titles_to_prevent_injection() {
     let html = render_page(&[sample_film("Ernie & <script>alert(1)</script>")]);
     assert!(html.contains("Ernie &amp; &lt;script&gt;"), "title must be escaped");

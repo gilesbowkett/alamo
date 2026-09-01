@@ -134,7 +134,8 @@ pub fn render_page(films: &[FilmSchedule]) -> String {
     for film in films {
         let title = html_escape(&film.film.title);
         let hero = html_escape(&film.film.hero_uri);
-        let url = html_escape(&presentation_url(&film.film));
+        let base = presentation_url(&film.film);
+        let url = html_escape(&base);
         h.push_str("<article class=\"film\">\n");
         h.push_str(&format!(
             "  <a class=\"hero-link\" href=\"{url}\" target=\"_blank\" rel=\"noopener\">\
@@ -147,9 +148,15 @@ pub fn render_page(films: &[FilmSchedule]) -> String {
         h.push_str("    <div class=\"showtimes\">\n");
         for (date, times) in &film.dates {
             let day = html_escape(&fmt_date(date));
+            let href = html_escape(&format!("{base}&date={date}"));
             let slots: Vec<String> = times
                 .iter()
-                .map(|t| format!("<span class=\"time\">{}</span>", html_escape(&fmt_time(t))))
+                .map(|t| {
+                    format!(
+                        "<a class=\"time\" href=\"{href}\" target=\"_blank\" rel=\"noopener\">{}</a>",
+                        html_escape(&fmt_time(t))
+                    )
+                })
                 .collect();
             h.push_str(&format!(
                 "      <div class=\"day\"><strong class=\"date\">{day}</strong>\
@@ -184,7 +191,8 @@ const STYLE: &str = r#"
   .date { color: #444; }
   .times { display: flex; flex-wrap: wrap; gap: 0.4rem; }
   .time { display: inline-block; padding: 0.15rem 0.5rem; border: 1px solid #ccc;
-          border-radius: 4px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+          border-radius: 4px; font-variant-numeric: tabular-nums; white-space: nowrap;
+          color: inherit; text-decoration: none; }
 "#;
 
 /// Parse an Alamo CLT/UTC timestamp string (e.g. "2026-09-05T23:00:00", no zone suffix).
