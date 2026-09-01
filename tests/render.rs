@@ -51,6 +51,29 @@ fn renders_full_document_with_film_content() {
 }
 
 #[test]
+fn renders_two_column_structure() {
+    let html = render_page(&[sample_film("Ernie & Emma")]);
+
+    // Both new wrappers exist.
+    assert!(html.contains("<div class=\"film-main\">"), "right-column wrapper present");
+    assert!(html.contains("<div class=\"times\">"), "day's time-column wrapper present");
+
+    // Card is hero (left) then film-main (right, holding the showtimes).
+    let hero = html.find("class=\"hero\"").expect("hero present");
+    let main = html.find("class=\"film-main\"").expect("film-main present");
+    let showtimes = html.find("class=\"showtimes\"").expect("showtimes present");
+    assert!(hero < main, "hero comes before the right column");
+    assert!(main < showtimes, "showtimes live inside film-main");
+
+    // Day row is date (left) then a .times column containing the .time span.
+    let date = html.find("class=\"date\"").expect("date present");
+    let times = html.find("class=\"times\"").expect("times column present");
+    let time = html.find("class=\"time\"").expect("time span present");
+    assert!(date < times, "date is the left column");
+    assert!(times < time, "the time span sits inside the .times column");
+}
+
+#[test]
 fn render_escapes_titles_to_prevent_injection() {
     let html = render_page(&[sample_film("Ernie & <script>alert(1)</script>")]);
     assert!(html.contains("Ernie &amp; &lt;script&gt;"), "title must be escaped");

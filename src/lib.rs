@@ -118,8 +118,9 @@ pub fn render_page(films: &[FilmSchedule]) -> String {
         h.push_str(&format!(
             "  <img class=\"hero\" src=\"{hero}\" alt=\"{title}\" loading=\"lazy\">\n"
         ));
-        h.push_str(&format!("  <h2>{title}</h2>\n"));
-        h.push_str("  <div class=\"showtimes\">\n");
+        h.push_str("  <div class=\"film-main\">\n");
+        h.push_str(&format!("    <h2>{title}</h2>\n"));
+        h.push_str("    <div class=\"showtimes\">\n");
         for (date, times) in &film.dates {
             let day = html_escape(&fmt_date(date));
             let slots: Vec<String> = times
@@ -127,11 +128,12 @@ pub fn render_page(films: &[FilmSchedule]) -> String {
                 .map(|t| format!("<span class=\"time\">{}</span>", html_escape(&fmt_time(t))))
                 .collect();
             h.push_str(&format!(
-                "    <div class=\"day\"><strong class=\"date\">{day}</strong> {}</div>\n",
+                "      <div class=\"day\"><strong class=\"date\">{day}</strong>\
+                 <div class=\"times\">{}</div></div>\n",
                 slots.join(" ")
             ));
         }
-        h.push_str("  </div>\n</article>\n");
+        h.push_str("    </div>\n  </div>\n</article>\n");
     }
 
     h.push_str("</body>\n</html>\n");
@@ -144,15 +146,20 @@ const STYLE: &str = r#"
          max-width: 720px; margin: 0 auto; padding: 1.5rem 1rem; line-height: 1.4;
          color: #1a1a1a; background: #fff; }
   h1 { font-size: 1.6rem; margin: 0 0 1.5rem; }
-  .film { margin: 0 0 2.5rem; }
+  .film { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem 1.25rem;
+          align-items: start; margin: 0 0 2.5rem; }
+  .film-main { min-width: 0; }
   .hero { display: block; width: 100%; max-width: 100%; height: auto;
           border-radius: 8px; background: #eee; }
-  .film h2 { font-size: 1.25rem; margin: 0.75rem 0 0.5rem; }
+  .film h2 { font-size: 1.25rem; margin: 0 0 0.5rem; }
   .showtimes { display: flex; flex-direction: column; gap: 0.4rem; }
-  .day { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.4rem 0.6rem; }
-  .date { min-width: 6.5rem; color: #444; }
+  .day { display: grid; grid-template-columns: 6.5rem 1fr; align-items: baseline;
+         gap: 0.4rem 0.6rem; }
+  .date { color: #444; }
+  .times { display: flex; flex-wrap: wrap; gap: 0.4rem; }
   .time { display: inline-block; padding: 0.15rem 0.5rem; border: 1px solid #ccc;
           border-radius: 4px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  @media (max-width: 480px) { .film { grid-template-columns: 1fr; } }
 "#;
 
 /// Parse an Alamo CLT/UTC timestamp string (e.g. "2026-09-05T23:00:00", no zone suffix).
