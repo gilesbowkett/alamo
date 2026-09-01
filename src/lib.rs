@@ -176,14 +176,14 @@ pub fn render_page(films: &[FilmSchedule]) -> String {
     h.push_str("<!doctype html>\n<html lang=\"en\">\n<head>\n");
     h.push_str("<meta charset=\"utf-8\">\n");
     h.push_str("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n");
-    h.push_str("<title>Alamo Drafthouse DTLA — Upcoming Showtimes</title>\n");
+    h.push_str("<title>Alamo Drafthouse DTLA: Upcoming Showtimes</title>\n");
     h.push_str("<style>\n");
     h.push_str(STYLE);
     h.push_str("</style>\n");
     h.push_str("<script>");
     h.push_str(ELM_JS);
     h.push_str("</script>\n</head>\n<body>\n");
-    h.push_str("<h1>Alamo Drafthouse DTLA — Upcoming Showtimes</h1>\n");
+    h.push_str("<h1>Alamo Drafthouse DTLA: Upcoming Showtimes</h1>\n");
 
     for film in films {
         let title = html_escape(&film.film.title);
