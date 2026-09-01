@@ -214,7 +214,7 @@ pub fn render_page(films: &[FilmSchedule]) -> String {
 }
 
 const STYLE: &str = r#"
-  :root { color-scheme: light; --cream: #f7f4ec; --ink: #1b1d24; }
+  :root { color-scheme: light; --cream: #fdfcf8; --ink: #1b1d24; }
   body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
          margin: 0 auto; padding: 1.5rem 1rem; line-height: 1.4;
          color: var(--ink); background: var(--cream); }
@@ -231,7 +231,7 @@ const STYLE: &str = r#"
             border-radius: 50%; background: var(--cream); color: var(--ink);
             font-size: 1rem; line-height: 1; cursor: pointer;
             display: flex; align-items: center; justify-content: center; }
-  .remove:hover { background: #ece6d8; }
+  .remove:hover { background: #efefef; }
   .film h2 { font-size: 1.25rem; margin: 0 0 0.5rem; }
   .film h2 a { color: inherit; text-decoration: none; }
   .rt { font-variant: small-caps; color: #d00; text-decoration: none;
