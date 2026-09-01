@@ -1,7 +1,7 @@
 // alamo: pure logic for turning Alamo Drafthouse schedule JSON into an HTML page.
 // All network I/O lives in main.rs; everything here is pure and unit-tested.
 
-use chrono::{DateTime, NaiveDate, NaiveDateTime, Utc};
+use chrono::{DateTime, Datelike, Duration, NaiveDate, NaiveDateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap};
 use std::error::Error;
@@ -135,6 +135,44 @@ const INIT_JS: &str = "<script>\n\
 #[derive(Serialize)]
 struct PageFlags {
     films: Vec<FilmFlag>,
+    calendar: Vec<CalDay>,
+}
+
+/// One cell of the 4-week calendar grid: its `M/D` date, whether it is a past
+/// (ghosted) day, and the titles playing that day.
+#[derive(Serialize)]
+pub struct CalDay {
+    pub date: String,
+    pub ghosted: bool,
+    pub films: Vec<String>,
+}
+
+/// Build the 4-week calendar grid (7 columns × 4 rows) starting at the Sunday of
+/// the week containing `now`. Each cell lists the titles playing that day (in
+/// soonest-first film order); days before today are ghosted.
+pub fn build_calendar(films: &[FilmSchedule], now: DateTime<Utc>) -> Vec<CalDay> {
+    let today = now.date_naive();
+    let offset = today.weekday().num_days_from_sunday() as i64;
+    let start = today - Duration::days(offset);
+
+    // business date (YYYY-MM-DD) -> titles, accumulated in film order.
+    let mut by_date: HashMap<String, Vec<String>> = HashMap::new();
+    for film in films {
+        for (date, _) in &film.dates {
+            by_date.entry(date.clone()).or_default().push(film.film.title.clone());
+        }
+    }
+
+    (0..28)
+        .map(|i| {
+            let day = start + Duration::days(i);
+            CalDay {
+                date: format!("{}/{}", day.month(), day.day()),
+                ghosted: day < today,
+                films: by_date.get(&day.format("%Y-%m-%d").to_string()).cloned().unwrap_or_default(),
+            }
+        })
+        .collect()
 }
 #[derive(Serialize)]
 struct FilmFlag {
@@ -185,7 +223,8 @@ fn film_flag(film: &FilmSchedule) -> FilmFlag {
 }
 
 /// Render the full HTML page for the given films (already filtered and sorted).
-pub fn render_page(films: &[FilmSchedule]) -> String {
+/// `now` anchors the calendar grid.
+pub fn render_page(films: &[FilmSchedule], now: DateTime<Utc>) -> String {
     let mut h = String::new();
     h.push_str("<!doctype html>\n<html lang=\"en\">\n<head>\n");
     h.push_str("<meta charset=\"utf-8\">\n");
@@ -201,7 +240,10 @@ pub fn render_page(films: &[FilmSchedule]) -> String {
 
     // The container Elm app renders every card from these flags and owns the
     // per-film remove/toggle interactions.
-    let flags = PageFlags { films: films.iter().map(film_flag).collect() };
+    let flags = PageFlags {
+        films: films.iter().map(film_flag).collect(),
+        calendar: build_calendar(films, now),
+    };
     let flags_json = serde_json::to_string(&flags).expect("flags serialize");
     h.push_str(&format!(
         "<div id=\"app\" data-flags=\"{}\"></div>\n",
@@ -219,6 +261,19 @@ const STYLE: &str = r#"
          margin: 0 auto; padding: 1.5rem 1rem; line-height: 1.4;
          color: var(--ink); background: var(--cream); }
   h1 { font-size: 1.6rem; margin: 0 0 1.5rem; }
+  .tabs { display: flex; gap: 0.5rem; margin: 0 0 1.5rem; }
+  .tab { display: inline-flex; align-items: center; gap: 0.4rem;
+         padding: 0.35rem 0.8rem; border: 1px solid #ccc; border-radius: 6px;
+         background: transparent; color: var(--ink); font: inherit;
+         font-variant: small-caps; cursor: pointer; }
+  .tab .icon { width: 1em; height: 1em; }
+  .tab.active { background: var(--ink); color: var(--cream); border-color: var(--ink); }
+  .calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.4rem; }
+  .cal-day { border: 1px solid #ddd; border-radius: 6px; padding: 0.4rem;
+             min-height: 5rem; font-size: 0.85rem; }
+  .cal-day.ghost { opacity: 0.45; }
+  .cal-date { font-variant-numeric: tabular-nums; color: #666; margin: 0 0 0.3rem; }
+  .cal-film { margin: 0 0 0.2rem; }
   .film { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem 1.25rem;
           align-items: start; margin: 0 0 2.5rem; }
   .film-main { min-width: 0; }
@@ -290,7 +345,7 @@ pub fn build_page(market_json: &str, now: DateTime<Utc>) -> Result<String, serde
         }
     }
     sort_films(&mut schedules);
-    Ok(render_page(&schedules))
+    Ok(render_page(&schedules, now))
 }
 
 /// Group sessions by their business date (ascending), with each day's showtimes

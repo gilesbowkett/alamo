@@ -2,7 +2,7 @@ module MainTest exposing (suite)
 
 import Expect
 import Json.Encode as E
-import Main exposing (Msg(..), init, update, view)
+import Main exposing (Msg(..), Tab(..), init, update, view)
 import Test exposing (Test, describe, test)
 import Test.Html.Query as Query
 import Test.Html.Selector exposing (class, text)
@@ -31,9 +31,21 @@ film id title timeLabel =
         ]
 
 
+calDay : String -> Bool -> List String -> E.Value
+calDay date ghosted films =
+    E.object
+        [ ( "date", E.string date )
+        , ( "ghosted", E.bool ghosted )
+        , ( "films", E.list E.string films )
+        ]
+
+
 flags : E.Value
 flags =
-    E.object [ ( "films", E.list identity [ film "a" "Alpha" "4:00 PM", film "b" "Beta" "9:00 PM" ] ) ]
+    E.object
+        [ ( "films", E.list identity [ film "a" "Alpha" "4:00 PM", film "b" "Beta" "9:00 PM" ] )
+        , ( "calendar", E.list identity [ calDay "8/30" True [], calDay "9/5" False [ "CalFilm" ] ] )
+        ]
 
 
 start : Main.Model
@@ -71,5 +83,26 @@ suite =
                     |> Expect.all
                         [ Query.has [ class "time", text "4:00 PM" ]
                         , Query.hasNot [ text "9:00 PM" ]
+                        ]
+        , test "tabs show both labels, list active by default, no calendar" <|
+            \_ ->
+                view start
+                    |> Query.fromHtml
+                    |> Expect.all
+                        [ Query.has [ text "list" ]
+                        , Query.has [ text "calendar" ]
+                        , Query.has [ class "film" ]
+                        , Query.hasNot [ class "calendar" ]
+                        ]
+        , test "SetTab CalendarTab shows the calendar grid and hides the cards" <|
+            \_ ->
+                Tuple.first (update (SetTab CalendarTab) start)
+                    |> view
+                    |> Query.fromHtml
+                    |> Expect.all
+                        [ Query.has [ class "calendar" ]
+                        , Query.has [ class "cal-day", text "9/5" ]
+                        , Query.has [ text "CalFilm" ]
+                        , Query.hasNot [ class "film" ]
                         ]
         ]
