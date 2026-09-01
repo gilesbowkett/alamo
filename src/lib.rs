@@ -137,11 +137,13 @@ pub fn render_page(films: &[FilmSchedule]) -> String {
         let url = html_escape(&presentation_url(&film.film));
         h.push_str("<article class=\"film\">\n");
         h.push_str(&format!(
-            "  <a class=\"hero-link\" href=\"{url}\">\
+            "  <a class=\"hero-link\" href=\"{url}\" target=\"_blank\" rel=\"noopener\">\
              <img class=\"hero\" src=\"{hero}\" alt=\"{title}\" loading=\"lazy\"></a>\n"
         ));
         h.push_str("  <div class=\"film-main\">\n");
-        h.push_str(&format!("    <h2><a href=\"{url}\">{title}</a></h2>\n"));
+        h.push_str(&format!(
+            "    <h2><a href=\"{url}\" target=\"_blank\" rel=\"noopener\">{title}</a></h2>\n"
+        ));
         h.push_str("    <div class=\"showtimes\">\n");
         for (date, times) in &film.dates {
             let day = html_escape(&fmt_date(date));

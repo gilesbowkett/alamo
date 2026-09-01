@@ -84,12 +84,14 @@ fn links_hero_and_title() {
     let html = render_page(&[sample_film("Ernie & Emma")]);
     let show_url = "https://drafthouse.com/los-angeles/show/ernie-emma?cinemaId=1701";
     assert!(
-        html.contains(&format!("<a class=\"hero-link\" href=\"{show_url}\">")),
-        "hero is wrapped in a link to the show URL"
+        html.contains(&format!(
+            "<a class=\"hero-link\" href=\"{show_url}\" target=\"_blank\" rel=\"noopener\">"
+        )),
+        "hero is wrapped in a new-tab link to the show URL"
     );
     assert!(
-        html.contains(&format!("<h2><a href=\"{show_url}\">")),
-        "title is wrapped in a link to the show URL"
+        html.contains(&format!("<h2><a href=\"{show_url}\" target=\"_blank\" rel=\"noopener\">")),
+        "title is wrapped in a new-tab link to the show URL"
     );
 
     // Event presentations link under /event/ instead.
