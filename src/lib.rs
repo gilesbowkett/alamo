@@ -214,10 +214,10 @@ pub fn render_page(films: &[FilmSchedule]) -> String {
 }
 
 const STYLE: &str = r#"
-  :root { color-scheme: light; }
+  :root { color-scheme: light; --cream: #f7f4ec; --ink: #1b1d24; }
   body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
          margin: 0 auto; padding: 1.5rem 1rem; line-height: 1.4;
-         color: #1a1a1a; background: #fff; }
+         color: var(--ink); background: var(--cream); }
   h1 { font-size: 1.6rem; margin: 0 0 1.5rem; }
   .film { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem 1.25rem;
           align-items: start; margin: 0 0 2.5rem; }
@@ -228,10 +228,10 @@ const STYLE: &str = r#"
           border-radius: 8px; background: #eee; }
   .remove { position: absolute; top: 0.4rem; left: 0.4rem;
             width: 1.6rem; height: 1.6rem; padding: 0; border: none;
-            border-radius: 50%; background: rgba(0, 0, 0, 0.6); color: #fff;
+            border-radius: 50%; background: var(--cream); color: var(--ink);
             font-size: 1rem; line-height: 1; cursor: pointer;
             display: flex; align-items: center; justify-content: center; }
-  .remove:hover { background: rgba(0, 0, 0, 0.85); }
+  .remove:hover { background: #ece6d8; }
   .film h2 { font-size: 1.25rem; margin: 0 0 0.5rem; }
   .film h2 a { color: inherit; text-decoration: none; }
   .rt { font-variant: small-caps; color: #d00; text-decoration: none;
