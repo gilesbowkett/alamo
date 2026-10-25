@@ -6,6 +6,7 @@ import Html exposing (Html, a, article, button, div, h2, img, span, text)
 import Html.Attributes exposing (alt, class, classList, href, rel, src, target)
 import Html.Events exposing (onClick)
 import Json.Decode as D
+import Set exposing (Set)
 import Showtimes
 import Svg
 import Svg.Attributes as SA
@@ -38,12 +39,17 @@ type alias Model =
     { films : Dict Int Film
     , calendar : List Day
     , tab : Tab
+
+    -- (filmId, dayKey) pairs whose showtimes are expanded in the calendar. Per
+    -- cell, so a film's days (and list mode) toggle independently.
+    , calendarOpen : Set ( Int, String )
     }
 
 
 type Msg
     = HideFilm Int
     | ShowtimesMsg Int Showtimes.Msg
+    | ToggleCalFilm Int String
     | SetTab Tab
 
 
@@ -108,6 +114,7 @@ init flags =
     ( { films = Dict.fromList pairs
       , calendar = calendar
       , tab = ListTab
+      , calendarOpen = Set.empty
       }
     , Cmd.none
     )
@@ -135,6 +142,20 @@ update msg model =
             , Cmd.none
             )
 
+        ToggleCalFilm id key ->
+            let
+                cell =
+                    ( id, key )
+
+                calendarOpen =
+                    if Set.member cell model.calendarOpen then
+                        Set.remove cell model.calendarOpen
+
+                    else
+                        Set.insert cell model.calendarOpen
+            in
+            ( { model | calendarOpen = calendarOpen }, Cmd.none )
+
         SetTab tab ->
             ( { model | tab = tab }, Cmd.none )
 
@@ -156,7 +177,7 @@ view model =
                     )
 
             CalendarTab ->
-                viewCalendar model.films model.calendar
+                viewCalendar model.films model.calendarOpen model.calendar
         ]
 
 
@@ -174,25 +195,26 @@ tabButton active msg icon label =
         [ icon, span [] [ text label ] ]
 
 
-viewCalendar : Dict Int Film -> List Day -> Html Msg
-viewCalendar films days =
-    div [ class "calendar" ] (List.map (viewDay films) days)
+viewCalendar : Dict Int Film -> Set ( Int, String ) -> List Day -> Html Msg
+viewCalendar films calendarOpen days =
+    div [ class "calendar" ] (List.map (viewDay films calendarOpen) days)
 
 
-viewDay : Dict Int Film -> Day -> Html Msg
-viewDay films d =
+viewDay : Dict Int Film -> Set ( Int, String ) -> Day -> Html Msg
+viewDay films calendarOpen d =
     div [ class "cal-day", classList [ ( "ghost", d.ghosted ) ] ]
         (div [ class "cal-date" ] [ text d.date ]
-            :: List.filterMap (viewCalFilm films d.key) d.filmIds
+            :: List.filterMap (viewCalFilm films calendarOpen d.key) d.filmIds
         )
 
 
-{-| One film in a calendar cell: title above a tiny hero above that day's
-showtimes (its own Showtimes scoped to the cell's day). Dropped when hidden or
-unknown, so a hidden film leaves the calendar too.
+{-| One film in a calendar cell: title above a tiny hero above a "showtimes"
+link that toggles that day's times + runtime. The per-cell open state lives in
+`calendarOpen`, so the link click routes to `ToggleCalFilm` (not the shared
+`Film.showtimes`). Dropped when hidden or unknown, so a hidden film leaves too.
 -}
-viewCalFilm : Dict Int Film -> String -> Int -> Maybe (Html Msg)
-viewCalFilm films key id =
+viewCalFilm : Dict Int Film -> Set ( Int, String ) -> String -> Int -> Maybe (Html Msg)
+viewCalFilm films calendarOpen key id =
     case Dict.get id films of
         Just film ->
             if film.visible then
@@ -201,13 +223,13 @@ viewCalFilm films key id =
                         film.showtimes
 
                     scoped =
-                        { fs | scope = Showtimes.SingleDay key }
+                        { fs | scope = Showtimes.SingleDay key, open = Set.member ( id, key ) calendarOpen }
                 in
                 Just <|
                     div [ class "cal-film" ]
                         [ div [ class "cal-title" ] [ text film.title ]
                         , img [ class "cal-hero", src film.hero, alt film.title ] []
-                        , Html.map (ShowtimesMsg id) (Showtimes.view scoped)
+                        , Html.map (\_ -> ToggleCalFilm id key) (Showtimes.view scoped)
                         ]
 
             else

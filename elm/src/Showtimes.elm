@@ -43,22 +43,29 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
+    let
+        rest =
+            if model.open then
+                runtimeNode model.runtime ++ [ openContent model ]
+
+            else
+                []
+    in
+    div [ class "contents" ]
+        (a [ class "toggle", onClick Toggle ] [ text "showtimes" ] :: rest)
+
+
+{-| What the open toggle reveals, per scope: every day with date headers
+(`AllDays`, list mode), or just the matching day's times with no header
+(`SingleDay`, a calendar cell).
+-}
+openContent : Model -> Html Msg
+openContent model =
     case model.scope of
         AllDays ->
-            let
-                rest =
-                    if model.open then
-                        runtimeNode model.runtime ++ [ viewAllDays model.days ]
-
-                    else
-                        []
-            in
-            div [ class "contents" ]
-                (a [ class "toggle", onClick Toggle ] [ text "showtimes" ] :: rest)
+            viewAllDays model.days
 
         SingleDay key ->
-            -- Just the matching day's time links — no date header, toggle, or
-            -- runtime. The calendar supplies the day's label and the film's title.
             case List.filter (\d -> d.key == key) model.days of
                 day :: _ ->
                     div [ class "times" ] (List.map viewSlot day.times)

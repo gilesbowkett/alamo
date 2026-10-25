@@ -122,7 +122,7 @@ suite =
                         , Query.has [ class "film" ]
                         , Query.hasNot [ class "calendar" ]
                         ]
-        , test "CalendarTab shows each film as title + hero + that day's showtimes, hides the cards" <|
+        , test "CalendarTab shows each film as title + hero + a showtimes link, times hidden by default" <|
             \_ ->
                 Tuple.first (update (SetTab CalendarTab) start)
                     |> view
@@ -131,9 +131,24 @@ suite =
                         [ Query.has [ class "calendar" ]
                         , Query.has [ class "cal-day", text "9/5" ]
                         , Query.has [ class "cal-film", text "Alpha" ]
-                        , Query.has [ class "cal-hero" ]
                         , Query.findAll [ class "cal-hero", tag "img" ] >> Query.count (Expect.equal 2)
-                        , Query.has [ class "time", text "4:00 PM" ]
+                        , Query.findAll [ class "toggle", text "showtimes" ] >> Query.count (Expect.equal 2)
+                        , Query.hasNot [ class "time" ]
                         , Query.hasNot [ class "film" ]
+                        ]
+        , test "ToggleCalFilm opens only that film's showtimes on that day (times + runtime)" <|
+            \_ ->
+                start
+                    |> update (SetTab CalendarTab)
+                    |> Tuple.first
+                    |> update (ToggleCalFilm 0 "2026-09-05")
+                    |> Tuple.first
+                    |> view
+                    |> Query.fromHtml
+                    |> Expect.all
+                        [ Query.has [ class "time", text "4:00 PM" ]
+                        , Query.has [ class "runtime" ]
+                        -- film 1 on the same day stays closed
+                        , Query.hasNot [ class "time", text "9:00 PM" ]
                         ]
         ]

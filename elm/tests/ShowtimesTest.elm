@@ -57,15 +57,25 @@ suite =
                     |> view
                     |> Query.fromHtml
                     |> Query.hasNot [ class "runtime" ]
-        , test "SingleDay: only the matching day's times, no date header, no toggle link, no runtime" <|
+        , test "SingleDay closed: a showtimes link, but no times/runtime/date yet" <|
             \_ ->
                 view { start | scope = SingleDay "2026-09-05" }
                     |> Query.fromHtml
                     |> Expect.all
-                        [ Query.has [ class "time", text "4:00 PM" ]
-                        , Query.hasNot [ text "7:00 PM" ]
-                        , Query.hasNot [ class "date" ]
-                        , Query.hasNot [ text "showtimes" ]
+                        [ Query.has [ class "toggle", text "showtimes" ]
+                        , Query.hasNot [ class "time" ]
                         , Query.hasNot [ class "runtime" ]
+                        , Query.hasNot [ class "date" ]
+                        ]
+        , test "SingleDay open: only the matching day's times + runtime, still no date header" <|
+            \_ ->
+                view { start | scope = SingleDay "2026-09-05", open = True }
+                    |> Query.fromHtml
+                    |> Expect.all
+                        [ Query.has [ class "toggle", text "showtimes" ]
+                        , Query.has [ class "time", text "4:00 PM" ]
+                        , Query.hasNot [ text "7:00 PM" ]
+                        , Query.has [ class "runtime", text "1 hour 30 minutes" ]
+                        , Query.hasNot [ class "date" ]
                         ]
         ]
