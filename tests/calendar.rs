@@ -9,6 +9,7 @@ fn film(slug: &str, title: &str, dates: &[&str]) -> FilmSchedule {
             title: title.to_string(),
             hero_uri: "https://img/x.jpg".to_string(),
             is_event: false,
+            runtime_minutes: None,
         },
         dates: dates
             .iter()

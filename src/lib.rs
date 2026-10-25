@@ -31,6 +31,9 @@ pub struct Film {
     pub hero_uri: String,
     /// True when this presentation is an `/event/` page rather than a `/show/`.
     pub is_event: bool,
+    /// Runtime in whole minutes. `None` from the market feed (which never sets it);
+    /// populated from the per-presentation endpoint. See `parse_runtime`.
+    pub runtime_minutes: Option<u32>,
 }
 
 /// One showtime session from the market feed. `presentation_slug` joins it to
@@ -68,6 +71,9 @@ struct RawShow {
     title: String,
     #[serde(rename = "landscapeHeroImage")]
     landscape_hero_image: RawImage,
+    // Null in the market feed; populated by the per-presentation endpoint.
+    #[serde(rename = "runtimeMinutes", default)]
+    runtime_minutes: Option<u32>,
 }
 #[derive(Deserialize)]
 struct RawImage {
@@ -102,6 +108,24 @@ pub fn fmt_time(clt: &str) -> String {
         Some(dt) => dt.format("%-I:%M %p").to_string(),
         None => clt.to_string(),
     }
+}
+
+/// Format a runtime in minutes as e.g. "1 hour 54 minutes". `None` or 0 → "" so
+/// the UI can omit the runtime entirely. Units are singularized at 1.
+pub fn fmt_runtime(minutes: Option<u32>) -> String {
+    let m = match minutes {
+        Some(m) if m > 0 => m,
+        _ => return String::new(),
+    };
+    let (hours, mins) = (m / 60, m % 60);
+    let mut parts = Vec::new();
+    if hours > 0 {
+        parts.push(format!("{hours} hour{}", if hours == 1 { "" } else { "s" }));
+    }
+    if mins > 0 {
+        parts.push(format!("{mins} minute{}", if mins == 1 { "" } else { "s" }));
+    }
+    parts.join(" ")
 }
 
 /// Escape text for safe interpolation into HTML element content / double-quoted attrs.
@@ -181,6 +205,8 @@ struct FilmFlag {
     hero: String,
     url: String,
     rt: String,
+    // Pre-formatted runtime, e.g. "1 hour 54 minutes"; "" when unknown.
+    runtime: String,
     days: Vec<FlagDay>,
 }
 #[derive(Serialize)]
@@ -217,6 +243,7 @@ fn film_flag(film: &FilmSchedule) -> FilmFlag {
         title: film.film.title.clone(),
         hero: film.film.hero_uri.clone(),
         rt: format!("https://www.rottentomatoes.com/search?search={}", film.film.slug),
+        runtime: fmt_runtime(film.film.runtime_minutes),
         url: base,
         days,
     }
@@ -298,6 +325,7 @@ const STYLE: &str = r#"
   .contents { display: contents; }
   .showtimes { display: flex; flex-direction: column; gap: 0.4rem;
                margin-top: 0.6rem; }
+  .runtime { font-variant: small-caps; color: #666; font-size: 0.9rem; }
   .day { display: grid; grid-template-columns: 6.5rem 1fr; align-items: baseline;
          gap: 0.4rem 0.6rem; }
   .date { color: #444; }
@@ -329,6 +357,14 @@ pub fn is_dtla_future(session: &Session, now: DateTime<Utc>) -> bool {
 /// with no future DTLA session are dropped; the rest are ordered soonest-first.
 /// Propagates a JSON parse error rather than emitting a partial page.
 pub fn build_page(market_json: &str, now: DateTime<Utc>) -> Result<String, serde_json::Error> {
+    Ok(render_page(&schedule(market_json, now)?, now))
+}
+
+/// The parse/join/filter/sort half of the pipeline: the market feed JSON → the
+/// films to display (future DTLA only, soonest-first), without rendering. The I/O
+/// shell uses this to learn which films to display so it can fetch each one's
+/// runtime (absent from the market feed) before handing the lot to `render_page`.
+pub fn schedule(market_json: &str, now: DateTime<Utc>) -> Result<Vec<FilmSchedule>, serde_json::Error> {
     let films = parse_presentations(market_json)?;
     let sessions = parse_sessions(market_json)?;
 
@@ -345,7 +381,7 @@ pub fn build_page(market_json: &str, now: DateTime<Utc>) -> Result<String, serde
         }
     }
     sort_films(&mut schedules);
-    Ok(render_page(&schedules, now))
+    Ok(schedules)
 }
 
 /// Group sessions by their business date (ascending), with each day's showtimes
@@ -415,8 +451,18 @@ pub fn parse_presentations(json: &str) -> Result<Vec<Film>, serde_json::Error> {
             title: p.show.title,
             hero_uri: p.show.landscape_hero_image.uri,
             is_event: p.event.is_some(),
+            runtime_minutes: p.show.runtime_minutes,
         })
         .collect())
+}
+
+/// Extract a presentation's runtime (minutes) from a per-presentation feed
+/// response, keyed by its presentation slug. `Ok(None)` when the feed carries no
+/// runtime for that slug (absent presentation or null runtime) — that is the true
+/// value, not a failure. Propagates a JSON parse error.
+pub fn parse_runtime(json: &str, slug: &str) -> Result<Option<u32>, serde_json::Error> {
+    let films = parse_presentations(json)?;
+    Ok(films.into_iter().find(|f| f.slug == slug).and_then(|f| f.runtime_minutes))
 }
 
 /// The public Drafthouse URL for a film, scoped to the DTLA cinema. Event pages

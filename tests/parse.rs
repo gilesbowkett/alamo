@@ -51,6 +51,29 @@ fn builds_show_and_event_urls() {
 }
 
 #[test]
+fn market_feed_leaves_runtime_unset() {
+    // The market-wide feed never populates runtimeMinutes; it is null for every
+    // presentation. Runtime has to come from the per-presentation endpoint.
+    let films = alamo::parse_presentations(&fixture("market.json")).expect("parse presentations");
+    assert!(
+        films.iter().all(|f| f.runtime_minutes.is_none()),
+        "market feed should carry no runtimes"
+    );
+}
+
+#[test]
+fn parses_runtime_from_presentation_feed() {
+    // ernie-emma.json is a capture of the per-presentation endpoint, which does
+    // populate runtimeMinutes (90 for this show).
+    let rt = alamo::parse_runtime(&fixture("ernie-emma.json"), "ernie-emma").expect("parse runtime");
+    assert_eq!(rt, Some(90));
+
+    // A slug not present in the feed yields no runtime rather than an error.
+    let missing = alamo::parse_runtime(&fixture("ernie-emma.json"), "no-such-film").expect("parse");
+    assert_eq!(missing, None);
+}
+
+#[test]
 fn parses_sessions_from_market() {
     // A single-presentation capture: 10 sessions across two presentation slugs.
     let sessions = alamo::parse_sessions(&fixture("ernie-emma.json")).expect("parse sessions");

@@ -27,6 +27,7 @@ film id title timeLabel =
         , ( "hero", E.string ("https://img/" ++ id ++ ".jpg") )
         , ( "url", E.string ("https://drafthouse.com/los-angeles/show/" ++ id ++ "?cinemaId=1701") )
         , ( "rt", E.string ("https://www.rottentomatoes.com/search?search=" ++ id) )
+        , ( "runtime", E.string "1 hour 30 minutes" )
         , ( "days", E.list identity [ day "Sat Sep 5" timeLabel ] )
         ]
 

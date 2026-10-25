@@ -1,5 +1,5 @@
 // Feature 6-8: fmt_date, fmt_time, html_escape, render_page.
-use alamo::{fmt_date, fmt_time, html_escape, render_page, Film, FilmSchedule};
+use alamo::{fmt_date, fmt_runtime, fmt_time, html_escape, render_page, Film, FilmSchedule};
 use chrono::{TimeZone, Utc};
 
 #[test]
@@ -15,6 +15,20 @@ fn formats_times_as_12_hour() {
     assert_eq!(fmt_time("2026-09-05T09:15:00"), "9:15 AM");
     assert_eq!(fmt_time("2026-09-05T00:00:00"), "12:00 AM");
     assert_eq!(fmt_time("2026-09-05T12:00:00"), "12:00 PM");
+}
+
+#[test]
+fn formats_runtime_as_hours_and_minutes() {
+    assert_eq!(fmt_runtime(Some(114)), "1 hour 54 minutes");
+    assert_eq!(fmt_runtime(Some(90)), "1 hour 30 minutes");
+    assert_eq!(fmt_runtime(Some(60)), "1 hour");
+    assert_eq!(fmt_runtime(Some(120)), "2 hours");
+    assert_eq!(fmt_runtime(Some(61)), "1 hour 1 minute");
+    assert_eq!(fmt_runtime(Some(45)), "45 minutes");
+    assert_eq!(fmt_runtime(Some(1)), "1 minute");
+    // Absent / zero runtime renders as nothing (so the UI can omit the div).
+    assert_eq!(fmt_runtime(None), "");
+    assert_eq!(fmt_runtime(Some(0)), "");
 }
 
 #[test]
@@ -40,6 +54,7 @@ fn sample_film_kind(title: &str, is_event: bool) -> FilmSchedule {
             title: title.to_string(),
             hero_uri: "https://img-assets.drafthouse.com/images/shows/ernie-emma/HERO.jpg".to_string(),
             is_event,
+            runtime_minutes: Some(114),
         },
         dates: vec![("2026-09-05".to_string(), vec!["2026-09-05T16:00:00".to_string()])],
         earliest: Utc.with_ymd_and_hms(2026, 9, 5, 23, 0, 0).unwrap(),
@@ -83,6 +98,7 @@ fn container_flags_carry_each_films_data() {
         "img-assets.drafthouse.com/images/shows/ernie-emma/HERO.jpg",
         "los-angeles/show/ernie-emma?cinemaId=1701",
         "rottentomatoes.com/search?search=ernie-emma",
+        "&quot;runtime&quot;:&quot;1 hour 54 minutes&quot;", // formatted runtime rides in flags
         "Sat Sep 5",
         "4:00 PM",
         "date=2026-09-05",

@@ -16,7 +16,7 @@ sampleDays =
 
 start : Toggle.Model
 start =
-    init sampleDays
+    init "1 hour 30 minutes" sampleDays
 
 
 opened : Toggle.Model
@@ -31,21 +31,28 @@ suite =
             \_ -> Expect.equal False start.open
         , test "Toggle flips open" <|
             \_ -> Expect.equal True opened.open
-        , test "closed: label 'show dates/times', no showtimes" <|
+        , test "closed: label 'Showtimes.', no showtimes" <|
             \_ ->
                 view start
                     |> Query.fromHtml
                     |> Expect.all
-                        [ Query.has [ text "show dates/times" ]
+                        [ Query.has [ text "Showtimes." ]
                         , Query.hasNot [ class "showtimes" ]
                         ]
-        , test "open: label 'hide dates/times' and the showtime link" <|
+        , test "open: label 'Showtimes.', runtime above the day rows, and the showtime link" <|
             \_ ->
                 view opened
                     |> Query.fromHtml
                     |> Expect.all
-                        [ Query.has [ text "hide dates/times" ]
+                        [ Query.has [ text "Showtimes." ]
                         , Query.has [ class "showtimes" ]
+                        , Query.has [ class "runtime", text "1 hour 30 minutes" ]
                         , Query.has [ class "time", text "4:00 PM" ]
                         ]
+        , test "open with no runtime: no runtime div" <|
+            \_ ->
+                update Toggle (init "" sampleDays)
+                    |> view
+                    |> Query.fromHtml
+                    |> Query.hasNot [ class "runtime" ]
         ]

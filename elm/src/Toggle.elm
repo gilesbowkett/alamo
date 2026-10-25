@@ -1,6 +1,6 @@
 module Toggle exposing (Day, Model, Msg(..), Slot, daysDecoder, init, update, view)
 
-import Html exposing (Html, a, div, strong, text)
+import Html exposing (Html, a, div, text)
 import Html.Attributes exposing (class, href, rel, target)
 import Html.Events exposing (onClick)
 import Json.Decode as D
@@ -15,16 +15,16 @@ type alias Day =
 
 
 type alias Model =
-    { open : Bool, days : List Day }
+    { open : Bool, runtime : String, days : List Day }
 
 
 type Msg
     = Toggle
 
 
-init : List Day -> Model
-init days =
-    { open = False, days = days }
+init : String -> List Day -> Model
+init runtime days =
+    { open = False, runtime = runtime, days = days }
 
 
 update : Msg -> Model -> Model
@@ -37,33 +37,38 @@ update msg model =
 view : Model -> Html Msg
 view model =
     let
-        label =
-            if model.open then
-                "hide dates/times"
-
-            else
-                "show dates/times"
-
         rest =
             if model.open then
-                [ viewShowtimes model.days ]
+                [ viewShowtimes model.runtime model.days ]
 
             else
                 []
     in
     div [ class "contents" ]
-        (a [ class "toggle", onClick Toggle ] [ text label ] :: rest)
+        (a [ class "toggle", onClick Toggle ] [ text "Showtimes." ] :: rest)
 
 
-viewShowtimes : List Day -> Html Msg
-viewShowtimes days =
-    div [ class "showtimes" ] (List.map viewDay days)
+viewShowtimes : String -> List Day -> Html Msg
+viewShowtimes runtime days =
+    div [ class "showtimes" ]
+        (viewRuntime runtime ++ List.map viewDay days)
+
+
+{-| The runtime sits above the stack of day rows; omitted entirely when unknown.
+-}
+viewRuntime : String -> List (Html Msg)
+viewRuntime runtime =
+    if runtime == "" then
+        []
+
+    else
+        [ div [ class "runtime" ] [ text runtime ] ]
 
 
 viewDay : Day -> Html Msg
 viewDay day =
     div [ class "day" ]
-        [ strong [ class "date" ] [ text day.date ]
+        [ div [ class "date" ] [ text day.date ]
         , div [ class "times" ] (List.map viewSlot day.times)
         ]
 

@@ -52,15 +52,16 @@ type Msg
 
 filmDecoder : D.Decoder ( String, Film )
 filmDecoder =
-    D.map6
-        (\id title hero url rt days ->
-            ( id, Film title hero url rt (Toggle.init days) )
+    D.map7
+        (\id title hero url rt runtime days ->
+            ( id, Film title hero url rt (Toggle.init runtime days) )
         )
         (D.field "id" D.string)
         (D.field "title" D.string)
         (D.field "hero" D.string)
         (D.field "url" D.string)
         (D.field "rt" D.string)
+        (D.field "runtime" D.string)
         Toggle.daysDecoder
 
 
