@@ -48,9 +48,6 @@ view model =
         (a [ class "toggle", onClick Toggle ] [ text "showtimes" ] :: rest)
 
 
-{-| The runtime sits inline on the links row, right after the toggle; omitted
-entirely when unknown. Rendered only while open (it rides in `rest`).
--}
 runtimeNode : String -> List (Html Msg)
 runtimeNode runtime =
     if runtime == "" then
@@ -79,7 +76,7 @@ viewSlot slot =
 
 
 
--- Decoders (used by the container to build each film's toggle from flags)
+-- DECODERS
 
 
 slotDecoder : D.Decoder Slot

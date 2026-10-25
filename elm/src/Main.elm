@@ -47,7 +47,7 @@ type Msg
 
 
 
--- INIT / FLAGS
+-- INIT
 
 
 filmDecoder : D.Decoder ( Int, Film )
@@ -167,8 +167,6 @@ viewCalendar films days =
 viewDay : Dict Int Film -> Day -> Html Msg
 viewDay films d =
     let
-        -- Resolve each id through the one film store, dropping hidden/unknown
-        -- films, so hiding a film anywhere hides it here too.
         titles =
             List.filterMap
                 (\id -> Dict.get id films |> Maybe.andThen visibleTitle)
@@ -206,9 +204,6 @@ viewFilm id film =
             ]
         ]
 
-
-
--- ICONS (Font Awesome Free, inlined)
 
 
 iconList : Html msg
