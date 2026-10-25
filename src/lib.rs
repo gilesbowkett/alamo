@@ -318,14 +318,19 @@ const STYLE: &str = r#"
   .film h2 a { color: inherit; text-decoration: none; }
   .rt { font-variant: small-caps; color: #d00; text-decoration: none;
         font-size: 0.8rem; margin-right: 0.75rem; }
+  .rt:hover { color: #a80000; }
+  .rt:active { color: #000; }
   .toggle { font-variant: small-caps; color: #06c; text-decoration: none;
             font-size: 0.8rem; cursor: pointer; }
+  .toggle:hover { color: #004d99; }
+  .toggle:active { color: #000; }
   /* Elm's toggle view root vanishes from layout so the toggle sits inline next
      to .rt while the showtimes drop to their own line below. */
   .contents { display: contents; }
   .showtimes { display: flex; flex-direction: column; gap: 0.4rem;
                margin-top: 0.6rem; }
-  .runtime { font-variant: small-caps; color: #666; font-size: 0.9rem; }
+  .runtime { font-variant: small-caps; color: #666; font-size: 0.9rem;
+             margin-left: 0.75rem; }
   .day { display: grid; grid-template-columns: 6.5rem 1fr; align-items: baseline;
          gap: 0.4rem 0.6rem; }
   .date { color: #444; }

@@ -31,20 +31,20 @@ suite =
             \_ -> Expect.equal False start.open
         , test "Toggle flips open" <|
             \_ -> Expect.equal True opened.open
-        , test "closed: label 'Showtimes.', no showtimes" <|
+        , test "closed: label 'showtimes', no showtimes" <|
             \_ ->
                 view start
                     |> Query.fromHtml
                     |> Expect.all
-                        [ Query.has [ text "Showtimes." ]
+                        [ Query.has [ text "showtimes" ]
                         , Query.hasNot [ class "showtimes" ]
                         ]
-        , test "open: label 'Showtimes.', runtime above the day rows, and the showtime link" <|
+        , test "open: label 'showtimes', runtime above the day rows, and the showtime link" <|
             \_ ->
                 view opened
                     |> Query.fromHtml
                     |> Expect.all
-                        [ Query.has [ text "Showtimes." ]
+                        [ Query.has [ text "showtimes" ]
                         , Query.has [ class "showtimes" ]
                         , Query.has [ class "runtime", text "1 hour 30 minutes" ]
                         , Query.has [ class "time", text "4:00 PM" ]

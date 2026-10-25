@@ -1,6 +1,6 @@
 module Toggle exposing (Day, Model, Msg(..), Slot, daysDecoder, init, update, view)
 
-import Html exposing (Html, a, div, text)
+import Html exposing (Html, a, div, span, text)
 import Html.Attributes exposing (class, href, rel, target)
 import Html.Events exposing (onClick)
 import Json.Decode as D
@@ -39,30 +39,30 @@ view model =
     let
         rest =
             if model.open then
-                [ viewShowtimes model.runtime model.days ]
+                runtimeNode model.runtime ++ [ viewShowtimes model.days ]
 
             else
                 []
     in
     div [ class "contents" ]
-        (a [ class "toggle", onClick Toggle ] [ text "Showtimes." ] :: rest)
+        (a [ class "toggle", onClick Toggle ] [ text "showtimes" ] :: rest)
 
 
-viewShowtimes : String -> List Day -> Html Msg
-viewShowtimes runtime days =
-    div [ class "showtimes" ]
-        (viewRuntime runtime ++ List.map viewDay days)
-
-
-{-| The runtime sits above the stack of day rows; omitted entirely when unknown.
+{-| The runtime sits inline on the links row, right after the toggle; omitted
+entirely when unknown. Rendered only while open (it rides in `rest`).
 -}
-viewRuntime : String -> List (Html Msg)
-viewRuntime runtime =
+runtimeNode : String -> List (Html Msg)
+runtimeNode runtime =
     if runtime == "" then
         []
 
     else
-        [ div [ class "runtime" ] [ text runtime ] ]
+        [ span [ class "runtime" ] [ text runtime ] ]
+
+
+viewShowtimes : List Day -> Html Msg
+viewShowtimes days =
+    div [ class "showtimes" ] (List.map viewDay days)
 
 
 viewDay : Day -> Html Msg
