@@ -38,14 +38,16 @@ fn grid_is_four_weeks_from_the_current_sunday_with_ghosting() {
 #[test]
 fn a_film_appears_on_exactly_the_days_it_plays() {
     let now = Utc.with_ymd_and_hms(2026, 9, 2, 12, 0, 0).unwrap();
+    // Calendar cells carry each film's id — its index in this slice. Ernie = 0,
+    // Avengers = 1.
     let in_window = film("ernie-emma", "Ernie & Emma", &["2026-09-05", "2026-09-06"]);
     let out_of_window = film("avengers", "Avengers", &["2026-12-17"]);
     let cal = build_calendar(&[in_window, out_of_window], now);
 
-    // Ernie plays 9/5 and 9/6 — and nowhere else.
+    // Ernie (id 0) plays 9/5 and 9/6 — and nowhere else.
     let ernie_days: Vec<&str> = cal
         .iter()
-        .filter(|d| d.films.iter().any(|t| t == "Ernie & Emma"))
+        .filter(|d| d.film_ids.contains(&0))
         .map(|d| d.date.as_str())
         .collect();
     assert_eq!(ernie_days, vec!["9/5", "9/6"]);
@@ -54,13 +56,13 @@ fn a_film_appears_on_exactly_the_days_it_plays() {
     for d in &cal {
         let expected = d.date == "9/5" || d.date == "9/6";
         assert_eq!(
-            d.films.iter().any(|t| t == "Ernie & Emma"),
+            d.film_ids.contains(&0),
             expected,
             "Ernie presence wrong on {}",
             d.date
         );
     }
 
-    // A film playing only outside the 4-week window appears on no day.
-    assert!(cal.iter().all(|d| d.films.iter().all(|t| t != "Avengers")));
+    // A film (id 1) playing only outside the 4-week window appears on no day.
+    assert!(cal.iter().all(|d| !d.film_ids.contains(&1)));
 }

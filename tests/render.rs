@@ -93,7 +93,7 @@ fn container_flags_carry_each_films_data() {
     // showtimes (day label + time label + show-date href).
     let html = render_page(&[sample_film("Ernie & Emma")], now());
     for needle in [
-        "&quot;id&quot;:&quot;ernie-emma&quot;", // JSON quotes are HTML-escaped in the attribute
+        "&quot;id&quot;:0", // film id is its index (a number), not the slug
         "&quot;title&quot;:&quot;Ernie &amp; Emma&quot;",
         "img-assets.drafthouse.com/images/shows/ernie-emma/HERO.jpg",
         "los-angeles/show/ernie-emma?cinemaId=1701",

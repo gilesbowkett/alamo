@@ -19,33 +19,39 @@ day date label =
     E.object [ ( "date", E.string date ), ( "times", E.list identity [ slot label ] ) ]
 
 
-film : String -> String -> String -> E.Value
+film : Int -> String -> String -> E.Value
 film id title timeLabel =
+    let
+        s =
+            String.fromInt id
+    in
     E.object
-        [ ( "id", E.string id )
+        [ ( "id", E.int id )
         , ( "title", E.string title )
-        , ( "hero", E.string ("https://img/" ++ id ++ ".jpg") )
-        , ( "url", E.string ("https://drafthouse.com/los-angeles/show/" ++ id ++ "?cinemaId=1701") )
-        , ( "rt", E.string ("https://www.rottentomatoes.com/search?search=" ++ id) )
+        , ( "hero", E.string ("https://img/" ++ s ++ ".jpg") )
+        , ( "url", E.string ("https://drafthouse.com/los-angeles/show/" ++ s ++ "?cinemaId=1701") )
+        , ( "rt", E.string ("https://www.rottentomatoes.com/search?search=" ++ s) )
         , ( "runtime", E.string "1 hour 30 minutes" )
         , ( "days", E.list identity [ day "Sat Sep 5" timeLabel ] )
         ]
 
 
-calDay : String -> Bool -> List String -> E.Value
-calDay date ghosted films =
+calDay : String -> Bool -> List Int -> E.Value
+calDay date ghosted filmIds =
     E.object
         [ ( "date", E.string date )
         , ( "ghosted", E.bool ghosted )
-        , ( "films", E.list E.string films )
+        , ( "filmIds", E.list E.int filmIds )
         ]
 
 
 flags : E.Value
 flags =
     E.object
-        [ ( "films", E.list identity [ film "a" "Alpha" "4:00 PM", film "b" "Beta" "9:00 PM" ] )
-        , ( "calendar", E.list identity [ calDay "8/30" True [], calDay "9/5" False [ "CalFilm" ] ] )
+        [ ( "films", E.list identity [ film 0 "Alpha" "4:00 PM", film 1 "Beta" "9:00 PM" ] )
+
+        -- Both films play 9/5; the calendar resolves their titles via the films dict.
+        , ( "calendar", E.list identity [ calDay "8/30" True [], calDay "9/5" False [ 0, 1 ] ] )
         ]
 
 
@@ -67,18 +73,34 @@ suite =
                         , Query.findAll [ class "remove" ] >> Query.count (Expect.equal 2)
                         , Query.has [ text "\u{2717}" ]
                         ]
-        , test "RemoveFilm drops that film, keeps the other" <|
+        , test "HideFilm drops that film from the list, keeps the other" <|
             \_ ->
-                Tuple.first (update (RemoveFilm "a") start)
+                Tuple.first (update (HideFilm 0) start)
                     |> view
                     |> Query.fromHtml
                     |> Expect.all
                         [ Query.hasNot [ text "Alpha" ]
                         , Query.has [ text "Beta" ]
                         ]
+        , test "HideFilm also removes the film from the calendar, keeps the other" <|
+            \_ ->
+                -- The bug this refactor fixes: hiding in list mode must hide in
+                -- calendar mode too, since both resolve through model.films.
+                start
+                    |> update (HideFilm 0)
+                    |> Tuple.first
+                    |> update (SetTab CalendarTab)
+                    |> Tuple.first
+                    |> view
+                    |> Query.fromHtml
+                    |> Expect.all
+                        [ Query.has [ class "calendar" ]
+                        , Query.hasNot [ text "Alpha" ]
+                        , Query.has [ class "cal-film", text "Beta" ]
+                        ]
         , test "ToggleMsg opens only that film's showtimes" <|
             \_ ->
-                Tuple.first (update (ToggleMsg "a" Toggle.Toggle) start)
+                Tuple.first (update (ToggleMsg 0 Toggle.Toggle) start)
                     |> view
                     |> Query.fromHtml
                     |> Expect.all
@@ -95,7 +117,7 @@ suite =
                         , Query.has [ class "film" ]
                         , Query.hasNot [ class "calendar" ]
                         ]
-        , test "SetTab CalendarTab shows the calendar grid and hides the cards" <|
+        , test "SetTab CalendarTab shows the grid with film titles resolved by id, hides the cards" <|
             \_ ->
                 Tuple.first (update (SetTab CalendarTab) start)
                     |> view
@@ -103,7 +125,8 @@ suite =
                     |> Expect.all
                         [ Query.has [ class "calendar" ]
                         , Query.has [ class "cal-day", text "9/5" ]
-                        , Query.has [ text "CalFilm" ]
+                        , Query.has [ class "cal-film", text "Alpha" ]
+                        , Query.has [ class "cal-film", text "Beta" ]
                         , Query.hasNot [ class "film" ]
                         ]
         ]

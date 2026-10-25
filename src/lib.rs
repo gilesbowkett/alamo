@@ -163,27 +163,31 @@ struct PageFlags {
 }
 
 /// One cell of the 4-week calendar grid: its `M/D` date, whether it is a past
-/// (ghosted) day, and the titles playing that day.
+/// (ghosted) day, and the ids of the films playing that day. The ids are foreign
+/// keys into the film list (see `film_flag`); the client resolves them to titles,
+/// so a hidden film disappears from the calendar too.
 #[derive(Serialize)]
 pub struct CalDay {
     pub date: String,
     pub ghosted: bool,
-    pub films: Vec<String>,
+    #[serde(rename = "filmIds")]
+    pub film_ids: Vec<u32>,
 }
 
 /// Build the 4-week calendar grid (7 columns × 4 rows) starting at the Sunday of
-/// the week containing `now`. Each cell lists the titles playing that day (in
-/// soonest-first film order); days before today are ghosted.
+/// the week containing `now`. Each cell lists the ids of the films playing that
+/// day (in soonest-first film order); days before today are ghosted.
 pub fn build_calendar(films: &[FilmSchedule], now: DateTime<Utc>) -> Vec<CalDay> {
     let today = now.date_naive();
     let offset = today.weekday().num_days_from_sunday() as i64;
     let start = today - Duration::days(offset);
 
-    // business date (YYYY-MM-DD) -> titles, accumulated in film order.
-    let mut by_date: HashMap<String, Vec<String>> = HashMap::new();
-    for film in films {
+    // business date (YYYY-MM-DD) -> film ids, accumulated in film order. A film's
+    // id is its index here, matching `film_flag`'s id and the client's Dict key.
+    let mut by_date: HashMap<String, Vec<u32>> = HashMap::new();
+    for (i, film) in films.iter().enumerate() {
         for (date, _) in &film.dates {
-            by_date.entry(date.clone()).or_default().push(film.film.title.clone());
+            by_date.entry(date.clone()).or_default().push(i as u32);
         }
     }
 
@@ -193,14 +197,16 @@ pub fn build_calendar(films: &[FilmSchedule], now: DateTime<Utc>) -> Vec<CalDay>
             CalDay {
                 date: format!("{}/{}", day.month(), day.day()),
                 ghosted: day < today,
-                films: by_date.get(&day.format("%Y-%m-%d").to_string()).cloned().unwrap_or_default(),
+                film_ids: by_date.get(&day.format("%Y-%m-%d").to_string()).cloned().unwrap_or_default(),
             }
         })
         .collect()
 }
 #[derive(Serialize)]
 struct FilmFlag {
-    id: String,
+    // The film's id: its index in the (soonest-first) film list. Doubles as the
+    // client's Dict key and the foreign key the calendar cells reference.
+    id: u32,
     title: String,
     hero: String,
     url: String,
@@ -222,7 +228,7 @@ struct FlagSlot {
 
 /// Build one film's flags: its header URL (`presentation_url`), Rotten Tomatoes
 /// search, and showtimes (each linking to the header URL with the day appended).
-fn film_flag(film: &FilmSchedule) -> FilmFlag {
+fn film_flag(id: u32, film: &FilmSchedule) -> FilmFlag {
     let base = presentation_url(&film.film);
     let days = film
         .dates
@@ -239,7 +245,7 @@ fn film_flag(film: &FilmSchedule) -> FilmFlag {
         })
         .collect();
     FilmFlag {
-        id: film.film.slug.clone(),
+        id,
         title: film.film.title.clone(),
         hero: film.film.hero_uri.clone(),
         rt: format!("https://www.rottentomatoes.com/search?search={}", film.film.slug),
@@ -268,7 +274,7 @@ pub fn render_page(films: &[FilmSchedule], now: DateTime<Utc>) -> String {
     // The container Elm app renders every card from these flags and owns the
     // per-film remove/toggle interactions.
     let flags = PageFlags {
-        films: films.iter().map(film_flag).collect(),
+        films: films.iter().enumerate().map(|(i, f)| film_flag(i as u32, f)).collect(),
         calendar: build_calendar(films, now),
     };
     let flags_json = serde_json::to_string(&flags).expect("flags serialize");

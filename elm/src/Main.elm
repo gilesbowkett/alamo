@@ -1,4 +1,4 @@
-module Main exposing (CalDay, Film, Model, Msg(..), Tab(..), init, main, update, view)
+module Main exposing (Day, Film, Model, Msg(..), Tab(..), init, main, update, view)
 
 import Browser
 import Dict exposing (Dict)
@@ -17,13 +17,14 @@ type alias Film =
     , url : String
     , rt : String
     , toggle : Toggle.Model
+    , visible : Bool
     }
 
 
-type alias CalDay =
+type alias Day =
     { date : String
     , ghosted : Bool
-    , films : List String
+    , filmIds : List Int
     }
 
 
@@ -33,16 +34,15 @@ type Tab
 
 
 type alias Model =
-    { order : List String
-    , films : Dict String Film
-    , calendar : List CalDay
+    { films : Dict Int Film
+    , calendar : List Day
     , tab : Tab
     }
 
 
 type Msg
-    = RemoveFilm String
-    | ToggleMsg String Toggle.Msg
+    = HideFilm Int
+    | ToggleMsg Int Toggle.Msg
     | SetTab Tab
 
 
@@ -50,13 +50,21 @@ type Msg
 -- INIT / FLAGS
 
 
-filmDecoder : D.Decoder ( String, Film )
+filmDecoder : D.Decoder ( Int, Film )
 filmDecoder =
     D.map7
         (\id title hero url rt runtime days ->
-            ( id, Film title hero url rt (Toggle.init runtime days) )
+            ( id
+            , { title = title
+              , hero = hero
+              , url = url
+              , rt = rt
+              , toggle = Toggle.init runtime days
+              , visible = True
+              }
+            )
         )
-        (D.field "id" D.string)
+        (D.field "id" D.int)
         (D.field "title" D.string)
         (D.field "hero" D.string)
         (D.field "url" D.string)
@@ -65,12 +73,12 @@ filmDecoder =
         Toggle.daysDecoder
 
 
-calDayDecoder : D.Decoder CalDay
-calDayDecoder =
-    D.map3 CalDay
+dayDecoder : D.Decoder Day
+dayDecoder =
+    D.map3 Day
         (D.field "date" D.string)
         (D.field "ghosted" D.bool)
-        (D.field "films" (D.list D.string))
+        (D.field "filmIds" (D.list D.int))
 
 
 init : D.Value -> ( Model, Cmd Msg )
@@ -80,10 +88,9 @@ init flags =
             Result.withDefault [] (D.decodeValue (D.field "films" (D.list filmDecoder)) flags)
 
         calendar =
-            Result.withDefault [] (D.decodeValue (D.field "calendar" (D.list calDayDecoder)) flags)
+            Result.withDefault [] (D.decodeValue (D.field "calendar" (D.list dayDecoder)) flags)
     in
-    ( { order = List.map Tuple.first pairs
-      , films = Dict.fromList pairs
+    ( { films = Dict.fromList pairs
       , calendar = calendar
       , tab = ListTab
       }
@@ -98,10 +105,9 @@ init flags =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        RemoveFilm id ->
+        HideFilm id ->
             ( { model
-                | films = Dict.remove id model.films
-                , order = List.filter (\i -> i /= id) model.order
+                | films = Dict.update id (Maybe.map (\f -> { f | visible = False })) model.films
               }
             , Cmd.none
             )
@@ -129,10 +135,13 @@ view model =
         , case model.tab of
             ListTab ->
                 div []
-                    (List.filterMap (\id -> Maybe.map (viewFilm id) (Dict.get id model.films)) model.order)
+                    (Dict.toList model.films
+                        |> List.filter (\( _, f ) -> f.visible)
+                        |> List.map (\( id, f ) -> viewFilm id f)
+                    )
 
             CalendarTab ->
-                viewCalendar model.calendar
+                viewCalendar model.films model.calendar
         ]
 
 
@@ -150,26 +159,43 @@ tabButton active msg icon label =
         [ icon, span [] [ text label ] ]
 
 
-viewCalendar : List CalDay -> Html Msg
-viewCalendar days =
-    div [ class "calendar" ] (List.map viewCalDay days)
+viewCalendar : Dict Int Film -> List Day -> Html Msg
+viewCalendar films days =
+    div [ class "calendar" ] (List.map (viewDay films) days)
 
 
-viewCalDay : CalDay -> Html Msg
-viewCalDay d =
+viewDay : Dict Int Film -> Day -> Html Msg
+viewDay films d =
+    let
+        -- Resolve each id through the one film store, dropping hidden/unknown
+        -- films, so hiding a film anywhere hides it here too.
+        titles =
+            List.filterMap
+                (\id -> Dict.get id films |> Maybe.andThen visibleTitle)
+                d.filmIds
+    in
     div [ class "cal-day", classList [ ( "ghost", d.ghosted ) ] ]
         (div [ class "cal-date" ] [ text d.date ]
-            :: List.map (\t -> div [ class "cal-film" ] [ text t ]) d.films
+            :: List.map (\t -> div [ class "cal-film" ] [ text t ]) titles
         )
 
 
-viewFilm : String -> Film -> Html Msg
+visibleTitle : Film -> Maybe String
+visibleTitle film =
+    if film.visible then
+        Just film.title
+
+    else
+        Nothing
+
+
+viewFilm : Int -> Film -> Html Msg
 viewFilm id film =
     article [ class "film" ]
         [ div [ class "hero-wrap" ]
             [ a [ class "hero-link", href film.url, target "_blank", rel "noopener" ]
                 [ img [ class "hero", src film.hero, alt film.title ] [] ]
-            , button [ class "remove", onClick (RemoveFilm id) ] [ text "\u{2717}" ]
+            , button [ class "remove", onClick (HideFilm id) ] [ text "\u{2717}" ]
             ]
         , div [ class "film-main" ]
             [ h2 []
