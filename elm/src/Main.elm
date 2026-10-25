@@ -49,7 +49,7 @@ type alias Model =
 type Msg
     = HideFilm Int
     | ShowtimesMsg Int Showtimes.Msg
-    | ToggleCalFilm Int String
+    | ToggleCalendarFilm Int String
     | SetTab Tab
 
 
@@ -93,8 +93,8 @@ showtimeDayDecoder =
         (D.field "times" (D.list slotDecoder))
 
 
-calDayDecoder : D.Decoder Day
-calDayDecoder =
+calendarDayDecoder : D.Decoder Day
+calendarDayDecoder =
     D.map4 Day
         (D.field "key" D.string)
         (D.field "date" D.string)
@@ -109,7 +109,7 @@ init flags =
             Result.withDefault [] (D.decodeValue (D.field "films" (D.list filmDecoder)) flags)
 
         calendar =
-            Result.withDefault [] (D.decodeValue (D.field "calendar" (D.list calDayDecoder)) flags)
+            Result.withDefault [] (D.decodeValue (D.field "calendar" (D.list calendarDayDecoder)) flags)
     in
     ( { films = Dict.fromList pairs
       , calendar = calendar
@@ -142,7 +142,7 @@ update msg model =
             , Cmd.none
             )
 
-        ToggleCalFilm id key ->
+        ToggleCalendarFilm id key ->
             let
                 cell =
                     ( id, key )
@@ -202,19 +202,19 @@ viewCalendar films calendarOpen days =
 
 viewDay : Dict Int Film -> Set ( Int, String ) -> Day -> Html Msg
 viewDay films calendarOpen d =
-    div [ class "cal-day", classList [ ( "ghost", d.ghosted ) ] ]
-        (div [ class "cal-date" ] [ text d.date ]
-            :: List.filterMap (viewCalFilm films calendarOpen d.key) d.filmIds
+    div [ class "calendar-day", classList [ ( "ghost", d.ghosted ) ] ]
+        (div [ class "calendar-date" ] [ text d.date ]
+            :: List.filterMap (viewCalendarFilm films calendarOpen d.key) d.filmIds
         )
 
 
 {-| One film in a calendar cell: title above a tiny hero above a "showtimes"
 link that toggles that day's times + runtime. The per-cell open state lives in
-`calendarOpen`, so the link click routes to `ToggleCalFilm` (not the shared
+`calendarOpen`, so the link click routes to `ToggleCalendarFilm` (not the shared
 `Film.showtimes`). Dropped when hidden or unknown, so a hidden film leaves too.
 -}
-viewCalFilm : Dict Int Film -> Set ( Int, String ) -> String -> Int -> Maybe (Html Msg)
-viewCalFilm films calendarOpen key id =
+viewCalendarFilm : Dict Int Film -> Set ( Int, String ) -> String -> Int -> Maybe (Html Msg)
+viewCalendarFilm films calendarOpen key id =
     case Dict.get id films of
         Just film ->
             if film.visible then
@@ -226,10 +226,10 @@ viewCalFilm films calendarOpen key id =
                         { fs | scope = Showtimes.SingleDay key, open = Set.member ( id, key ) calendarOpen }
                 in
                 Just <|
-                    div [ class "cal-film" ]
-                        [ div [ class "cal-title" ] [ text film.title ]
-                        , img [ class "cal-hero", src film.hero, alt film.title ] []
-                        , Html.map (\_ -> ToggleCalFilm id key) (Showtimes.view scoped)
+                    div [ class "calendar-film" ]
+                        [ div [ class "calendar-title" ] [ text film.title ]
+                        , img [ class "calendar-hero", src film.hero, alt film.title ] []
+                        , Html.map (\_ -> ToggleCalendarFilm id key) (Showtimes.view scoped)
                         ]
 
             else

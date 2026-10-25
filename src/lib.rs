@@ -159,7 +159,7 @@ const INIT_JS: &str = "<script>\n\
 #[derive(Serialize)]
 struct PageFlags {
     films: Vec<FilmFlag>,
-    calendar: Vec<CalDay>,
+    calendar: Vec<CalendarDay>,
 }
 
 /// One cell of the 4-week calendar grid: its `M/D` date, whether it is a past
@@ -167,7 +167,7 @@ struct PageFlags {
 /// keys into the film list (see `film_flag`); the client resolves them to titles,
 /// so a hidden film disappears from the calendar too.
 #[derive(Serialize)]
-pub struct CalDay {
+pub struct CalendarDay {
     // ISO date ("2026-09-05") — matches each film's FlagDay.key so the calendar
     // can scope a film's Showtimes to this day. `date` is the "M/D" display.
     pub key: String,
@@ -180,7 +180,7 @@ pub struct CalDay {
 /// Build the 4-week calendar grid (7 columns × 4 rows) starting at the Sunday of
 /// the week containing `now`. Each cell lists the ids of the films playing that
 /// day (in soonest-first film order); days before today are ghosted.
-pub fn build_calendar(films: &[FilmSchedule], now: DateTime<Utc>) -> Vec<CalDay> {
+pub fn build_calendar(films: &[FilmSchedule], now: DateTime<Utc>) -> Vec<CalendarDay> {
     let today = now.date_naive();
     let offset = today.weekday().num_days_from_sunday() as i64;
     let start = today - Duration::days(offset);
@@ -198,7 +198,7 @@ pub fn build_calendar(films: &[FilmSchedule], now: DateTime<Utc>) -> Vec<CalDay>
         .map(|i| {
             let day = start + Duration::days(i);
             let iso = day.format("%Y-%m-%d").to_string();
-            CalDay {
+            CalendarDay {
                 date: format!("{}/{}", day.month(), day.day()),
                 ghosted: day < today,
                 film_ids: by_date.get(&iso).cloned().unwrap_or_default(),
@@ -311,13 +311,13 @@ const STYLE: &str = r#"
   .tab .icon { width: 1em; height: 1em; }
   .tab.active { background: var(--ink); color: var(--cream); border-color: var(--ink); }
   .calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.4rem; }
-  .cal-day { border: 1px solid #ddd; border-radius: 6px; padding: 0.4rem;
+  .calendar-day { border: 1px solid #ddd; border-radius: 6px; padding: 0.4rem;
              min-height: 5rem; font-size: 0.85rem; }
-  .cal-day.ghost { opacity: 0.45; }
-  .cal-date { font-variant-numeric: tabular-nums; color: #666; margin: 0 0 0.3rem; }
-  .cal-film { margin: 0 0 0.6rem; }
-  .cal-title { font-weight: 600; margin: 0 0 0.2rem; }
-  .cal-hero { display: block; width: 96%; height: auto; border-radius: 4px;
+  .calendar-day.ghost { opacity: 0.45; }
+  .calendar-date { font-variant-numeric: tabular-nums; color: #666; margin: 0 0 0.3rem; }
+  .calendar-film { margin: 0 0 0.6rem; }
+  .calendar-title { font-weight: 600; margin: 0 0 0.2rem; }
+  .calendar-hero { display: block; width: 96%; height: auto; border-radius: 4px;
               background: #eee; margin: 0 0 0.25rem; }
   .film { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem 1.25rem;
           align-items: start; margin: 0 0 2.5rem; }

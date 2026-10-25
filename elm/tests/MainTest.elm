@@ -101,7 +101,7 @@ suite =
                     |> Expect.all
                         [ Query.has [ class "calendar" ]
                         , Query.hasNot [ text "Alpha" ]
-                        , Query.has [ class "cal-film", text "Beta" ]
+                        , Query.has [ class "calendar-film", text "Beta" ]
                         ]
         , test "ShowtimesMsg opens only that film's showtimes" <|
             \_ ->
@@ -129,19 +129,19 @@ suite =
                     |> Query.fromHtml
                     |> Expect.all
                         [ Query.has [ class "calendar" ]
-                        , Query.has [ class "cal-day", text "9/5" ]
-                        , Query.has [ class "cal-film", text "Alpha" ]
-                        , Query.findAll [ class "cal-hero", tag "img" ] >> Query.count (Expect.equal 2)
+                        , Query.has [ class "calendar-day", text "9/5" ]
+                        , Query.has [ class "calendar-film", text "Alpha" ]
+                        , Query.findAll [ class "calendar-hero", tag "img" ] >> Query.count (Expect.equal 2)
                         , Query.findAll [ class "toggle", text "showtimes" ] >> Query.count (Expect.equal 2)
                         , Query.hasNot [ class "time" ]
                         , Query.hasNot [ class "film" ]
                         ]
-        , test "ToggleCalFilm opens only that film's showtimes on that day (times + runtime)" <|
+        , test "ToggleCalendarFilm opens only that film's showtimes on that day (times + runtime)" <|
             \_ ->
                 start
                     |> update (SetTab CalendarTab)
                     |> Tuple.first
-                    |> update (ToggleCalFilm 0 "2026-09-05")
+                    |> update (ToggleCalendarFilm 0 "2026-09-05")
                     |> Tuple.first
                     |> view
                     |> Query.fromHtml
