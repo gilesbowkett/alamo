@@ -5,6 +5,7 @@ import Json.Encode as E
 import Main exposing (Msg(..), Tab(..), init, update, view)
 import Showtimes
 import Test exposing (Test, describe, test)
+import Test.Html.Event as Event
 import Test.Html.Query as Query
 import Test.Html.Selector exposing (class, tag, text)
 
@@ -133,9 +134,22 @@ suite =
                         , Query.has [ class "calendar-film", text "Alpha" ]
                         , Query.findAll [ class "calendar-hero", tag "img" ] >> Query.count (Expect.equal 2)
                         , Query.findAll [ class "toggle", text "showtimes" ] >> Query.count (Expect.equal 2)
+                        , Query.findAll [ class "remove" ] >> Query.count (Expect.equal 2)
                         , Query.hasNot [ class "time" ]
                         , Query.hasNot [ class "film" ]
                         ]
+        , test "calendar remove button hides its film (emits HideFilm)" <|
+            \_ ->
+                start
+                    |> update (SetTab CalendarTab)
+                    |> Tuple.first
+                    |> view
+                    |> Query.fromHtml
+                    |> Query.findAll [ class "calendar-film" ]
+                    |> Query.index 0
+                    |> Query.find [ class "remove" ]
+                    |> Event.simulate Event.click
+                    |> Event.expect (HideFilm 0)
         , test "ToggleCalendarFilm opens only that film's showtimes on that day (times + runtime)" <|
             \_ ->
                 start

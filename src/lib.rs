@@ -332,6 +332,8 @@ const STYLE: &str = r#"
             font-size: 1rem; line-height: 1; cursor: pointer;
             display: flex; align-items: center; justify-content: center; }
   .remove:hover { background: #efefef; }
+  .calendar-film .remove { width: 1.1rem; height: 1.1rem; font-size: 0.7rem;
+                           top: 0.25rem; left: 0.25rem; }
   .film h2 { font-size: 1.25rem; margin: 0 0 0.5rem; }
   .film h2 a { color: inherit; text-decoration: none; }
   .rt { font-variant: small-caps; color: #d00; text-decoration: none;

@@ -228,7 +228,10 @@ viewCalendarFilm films calendarOpen key id =
                 Just <|
                     div [ class "calendar-film" ]
                         [ div [ class "calendar-title" ] [ text film.title ]
-                        , img [ class "calendar-hero", src film.hero, alt film.title ] []
+                        , div [ class "hero-wrap" ]
+                            [ img [ class "calendar-hero", src film.hero, alt film.title ] []
+                            , button [ class "remove", onClick (HideFilm id) ] [ text "\u{2717}" ]
+                            ]
                         , Html.map (\_ -> ToggleCalendarFilm id key) (Showtimes.view scoped)
                         ]
 
