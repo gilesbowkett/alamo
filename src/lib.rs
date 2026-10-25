@@ -168,6 +168,9 @@ struct PageFlags {
 /// so a hidden film disappears from the calendar too.
 #[derive(Serialize)]
 pub struct CalDay {
+    // ISO date ("2026-09-05") — matches each film's FlagDay.key so the calendar
+    // can scope a film's Showtimes to this day. `date` is the "M/D" display.
+    pub key: String,
     pub date: String,
     pub ghosted: bool,
     #[serde(rename = "filmIds")]
@@ -194,10 +197,12 @@ pub fn build_calendar(films: &[FilmSchedule], now: DateTime<Utc>) -> Vec<CalDay>
     (0..28)
         .map(|i| {
             let day = start + Duration::days(i);
+            let iso = day.format("%Y-%m-%d").to_string();
             CalDay {
                 date: format!("{}/{}", day.month(), day.day()),
                 ghosted: day < today,
-                film_ids: by_date.get(&day.format("%Y-%m-%d").to_string()).cloned().unwrap_or_default(),
+                film_ids: by_date.get(&iso).cloned().unwrap_or_default(),
+                key: iso,
             }
         })
         .collect()
@@ -217,6 +222,9 @@ struct FilmFlag {
 }
 #[derive(Serialize)]
 struct FlagDay {
+    // ISO business date ("2026-09-05") — the stable key a calendar cell scopes a
+    // film's Showtimes to. `date` is the human display ("Sat Sep 5").
+    key: String,
     date: String,
     times: Vec<FlagSlot>,
 }
@@ -234,6 +242,7 @@ fn film_flag(id: u32, film: &FilmSchedule) -> FilmFlag {
         .dates
         .iter()
         .map(|(date, times)| FlagDay {
+            key: date.clone(),
             date: fmt_date(date),
             times: times
                 .iter()
@@ -306,7 +315,10 @@ const STYLE: &str = r#"
              min-height: 5rem; font-size: 0.85rem; }
   .cal-day.ghost { opacity: 0.45; }
   .cal-date { font-variant-numeric: tabular-nums; color: #666; margin: 0 0 0.3rem; }
-  .cal-film { margin: 0 0 0.2rem; }
+  .cal-film { margin: 0 0 0.6rem; }
+  .cal-title { font-weight: 600; margin: 0 0 0.2rem; }
+  .cal-hero { display: block; width: 96%; height: auto; border-radius: 4px;
+              background: #eee; margin: 0 0 0.25rem; }
   .film { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem 1.25rem;
           align-items: start; margin: 0 0 2.5rem; }
   .film-main { min-width: 0; }

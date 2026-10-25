@@ -99,6 +99,7 @@ fn container_flags_carry_each_films_data() {
         "los-angeles/show/ernie-emma?cinemaId=1701",
         "rottentomatoes.com/search?search=ernie-emma",
         "&quot;runtime&quot;:&quot;1 hour 54 minutes&quot;", // formatted runtime rides in flags
+        "&quot;key&quot;:&quot;2026-09-05&quot;", // ISO day key: on the film's day AND its calendar cell
         "Sat Sep 5",
         "4:00 PM",
         "date=2026-09-05",

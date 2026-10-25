@@ -1,32 +1,32 @@
-module ToggleTest exposing (suite)
+module ShowtimesTest exposing (suite)
 
 import Expect
+import Showtimes exposing (Msg(..), Scope(..), init, update, view)
 import Test exposing (Test, describe, test)
 import Test.Html.Query as Query
 import Test.Html.Selector exposing (class, text)
-import Toggle exposing (Msg(..), init, update, view)
 
 
-sampleDays : List Toggle.Day
+sampleDays : List Showtimes.Day
 sampleDays =
-    [ Toggle.Day "Sat Sep 5"
-        [ Toggle.Slot "4:00 PM" "https://drafthouse.com/los-angeles/show/x?cinemaId=1701&date=2026-09-05" ]
+    [ Showtimes.Day "2026-09-05" "Sat Sep 5" [ Showtimes.Slot "4:00 PM" "https://drafthouse.com/x?date=2026-09-05" ]
+    , Showtimes.Day "2026-09-06" "Sun Sep 6" [ Showtimes.Slot "7:00 PM" "https://drafthouse.com/x?date=2026-09-06" ]
     ]
 
 
-start : Toggle.Model
+start : Showtimes.Model
 start =
     init "1 hour 30 minutes" sampleDays
 
 
-opened : Toggle.Model
+opened : Showtimes.Model
 opened =
     update Toggle start
 
 
 suite : Test
 suite =
-    describe "Toggle component"
+    describe "Showtimes component"
         [ test "starts closed" <|
             \_ -> Expect.equal False start.open
         , test "Toggle flips open" <|
@@ -39,7 +39,7 @@ suite =
                         [ Query.has [ text "showtimes" ]
                         , Query.hasNot [ class "showtimes" ]
                         ]
-        , test "open: label 'showtimes', runtime above the day rows, and the showtime link" <|
+        , test "open (AllDays): label 'showtimes', runtime, date headers, and both days' times" <|
             \_ ->
                 view opened
                     |> Query.fromHtml
@@ -47,12 +47,25 @@ suite =
                         [ Query.has [ text "showtimes" ]
                         , Query.has [ class "showtimes" ]
                         , Query.has [ class "runtime", text "1 hour 30 minutes" ]
+                        , Query.has [ class "date", text "Sat Sep 5" ]
                         , Query.has [ class "time", text "4:00 PM" ]
+                        , Query.has [ class "time", text "7:00 PM" ]
                         ]
-        , test "open with no runtime: no runtime div" <|
+        , test "open with no runtime: no runtime element" <|
             \_ ->
                 update Toggle (init "" sampleDays)
                     |> view
                     |> Query.fromHtml
                     |> Query.hasNot [ class "runtime" ]
+        , test "SingleDay: only the matching day's times, no date header, no toggle link, no runtime" <|
+            \_ ->
+                view { start | scope = SingleDay "2026-09-05" }
+                    |> Query.fromHtml
+                    |> Expect.all
+                        [ Query.has [ class "time", text "4:00 PM" ]
+                        , Query.hasNot [ text "7:00 PM" ]
+                        , Query.hasNot [ class "date" ]
+                        , Query.hasNot [ text "showtimes" ]
+                        , Query.hasNot [ class "runtime" ]
+                        ]
         ]

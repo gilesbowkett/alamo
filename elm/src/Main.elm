@@ -6,9 +6,9 @@ import Html exposing (Html, a, article, button, div, h2, img, span, text)
 import Html.Attributes exposing (alt, class, classList, href, rel, src, target)
 import Html.Events exposing (onClick)
 import Json.Decode as D
+import Showtimes
 import Svg
 import Svg.Attributes as SA
-import Toggle
 
 
 type alias Film =
@@ -16,13 +16,14 @@ type alias Film =
     , hero : String
     , url : String
     , rt : String
-    , toggle : Toggle.Model
+    , showtimes : Showtimes.Model
     , visible : Bool
     }
 
 
 type alias Day =
-    { date : String
+    { key : String
+    , date : String
     , ghosted : Bool
     , filmIds : List Int
     }
@@ -42,7 +43,7 @@ type alias Model =
 
 type Msg
     = HideFilm Int
-    | ToggleMsg Int Toggle.Msg
+    | ShowtimesMsg Int Showtimes.Msg
     | SetTab Tab
 
 
@@ -59,7 +60,7 @@ filmDecoder =
               , hero = hero
               , url = url
               , rt = rt
-              , toggle = Toggle.init runtime days
+              , showtimes = Showtimes.init runtime days
               , visible = True
               }
             )
@@ -70,12 +71,26 @@ filmDecoder =
         (D.field "url" D.string)
         (D.field "rt" D.string)
         (D.field "runtime" D.string)
-        Toggle.daysDecoder
+        (D.field "days" (D.list showtimeDayDecoder))
 
 
-dayDecoder : D.Decoder Day
-dayDecoder =
-    D.map3 Day
+slotDecoder : D.Decoder Showtimes.Slot
+slotDecoder =
+    D.map2 Showtimes.Slot (D.field "label" D.string) (D.field "href" D.string)
+
+
+showtimeDayDecoder : D.Decoder Showtimes.Day
+showtimeDayDecoder =
+    D.map3 Showtimes.Day
+        (D.field "key" D.string)
+        (D.field "date" D.string)
+        (D.field "times" (D.list slotDecoder))
+
+
+calDayDecoder : D.Decoder Day
+calDayDecoder =
+    D.map4 Day
+        (D.field "key" D.string)
         (D.field "date" D.string)
         (D.field "ghosted" D.bool)
         (D.field "filmIds" (D.list D.int))
@@ -88,7 +103,7 @@ init flags =
             Result.withDefault [] (D.decodeValue (D.field "films" (D.list filmDecoder)) flags)
 
         calendar =
-            Result.withDefault [] (D.decodeValue (D.field "calendar" (D.list dayDecoder)) flags)
+            Result.withDefault [] (D.decodeValue (D.field "calendar" (D.list calDayDecoder)) flags)
     in
     ( { films = Dict.fromList pairs
       , calendar = calendar
@@ -112,10 +127,10 @@ update msg model =
             , Cmd.none
             )
 
-        ToggleMsg id sub ->
+        ShowtimesMsg id sub ->
             ( { model
                 | films =
-                    Dict.update id (Maybe.map (\f -> { f | toggle = Toggle.update sub f.toggle })) model.films
+                    Dict.update id (Maybe.map (\f -> { f | showtimes = Showtimes.update sub f.showtimes })) model.films
               }
             , Cmd.none
             )
@@ -166,25 +181,40 @@ viewCalendar films days =
 
 viewDay : Dict Int Film -> Day -> Html Msg
 viewDay films d =
-    let
-        titles =
-            List.filterMap
-                (\id -> Dict.get id films |> Maybe.andThen visibleTitle)
-                d.filmIds
-    in
     div [ class "cal-day", classList [ ( "ghost", d.ghosted ) ] ]
         (div [ class "cal-date" ] [ text d.date ]
-            :: List.map (\t -> div [ class "cal-film" ] [ text t ]) titles
+            :: List.filterMap (viewCalFilm films d.key) d.filmIds
         )
 
 
-visibleTitle : Film -> Maybe String
-visibleTitle film =
-    if film.visible then
-        Just film.title
+{-| One film in a calendar cell: title above a tiny hero above that day's
+showtimes (its own Showtimes scoped to the cell's day). Dropped when hidden or
+unknown, so a hidden film leaves the calendar too.
+-}
+viewCalFilm : Dict Int Film -> String -> Int -> Maybe (Html Msg)
+viewCalFilm films key id =
+    case Dict.get id films of
+        Just film ->
+            if film.visible then
+                let
+                    fs =
+                        film.showtimes
 
-    else
-        Nothing
+                    scoped =
+                        { fs | scope = Showtimes.SingleDay key }
+                in
+                Just <|
+                    div [ class "cal-film" ]
+                        [ div [ class "cal-title" ] [ text film.title ]
+                        , img [ class "cal-hero", src film.hero, alt film.title ] []
+                        , Html.map (ShowtimesMsg id) (Showtimes.view scoped)
+                        ]
+
+            else
+                Nothing
+
+        Nothing ->
+            Nothing
 
 
 viewFilm : Int -> Film -> Html Msg
@@ -200,7 +230,7 @@ viewFilm id film =
                 [ a [ href film.url, target "_blank", rel "noopener" ] [ text film.title ] ]
             , a [ class "rt", href film.rt, target "_blank", rel "noopener" ]
                 [ text "check rotten tomatoes" ]
-            , Html.map (ToggleMsg id) (Toggle.view film.toggle)
+            , Html.map (ShowtimesMsg id) (Showtimes.view film.showtimes)
             ]
         ]
 
