@@ -349,8 +349,9 @@ const STYLE: &str = r#"
   .contents { display: contents; }
   .showtimes { display: flex; flex-direction: column; gap: 0.4rem;
                margin-top: 0.6rem; }
-  .runtime { font-variant: small-caps; color: #666; font-size: 0.9rem;
+  .runtime { font-variant: small-caps; color: #666; font-size: 0.8rem;
              margin-left: 0.75rem; }
+  .calendar-film .runtime { display: block; margin-left: 0; margin-bottom: 6px; }
   .day { display: grid; grid-template-columns: 6.5rem 1fr; align-items: baseline;
          gap: 0.4rem 0.6rem; }
   .date { color: #444; }

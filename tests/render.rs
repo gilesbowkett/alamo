@@ -62,6 +62,15 @@ fn sample_film_kind(title: &str, is_event: bool) -> FilmSchedule {
 }
 
 #[test]
+fn runtime_matches_link_size_and_stacks_under_it_in_calendar() {
+    let html = render_page(&[sample_film("Ernie & Emma")], now());
+    // Runtime font-size matches the "showtimes" link (.toggle is 0.8rem).
+    assert!(html.contains(".runtime { font-variant: small-caps; color: #666; font-size: 0.8rem;"));
+    // In the calendar the runtime drops onto its own line beneath the link.
+    assert!(html.contains(".calendar-film .runtime { display: block;"));
+}
+
+#[test]
 fn renders_full_document_with_film_content() {
     let html = render_page(&[sample_film("Ernie & Emma")], now());
     assert!(html.to_lowercase().contains("<!doctype html>"));
