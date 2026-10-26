@@ -159,13 +159,23 @@ const INIT_JS: &str = "<script>\n\
 #[derive(Serialize)]
 struct PageFlags {
     films: Vec<FilmFlag>,
-    calendar: Vec<CalendarDay>,
+    calendar: Vec<CalendarWeek>,
 }
 
-/// One cell of the 4-week calendar grid: its `M/D` date, whether it is a past
-/// (ghosted) day, and the ids of the films playing that day. The ids are foreign
-/// keys into the film list (see `film_flag`); the client resolves them to titles,
-/// so a hidden film disappears from the calendar too.
+/// One Sunday–Saturday week of the calendar: the `month` it belongs to (its
+/// header label) and its seven days. A week is only emitted if at least one of
+/// its days has a film; a straddling week belongs to the month that begins within
+/// it. The client drops weeks whose films are all hidden and dedups month headers.
+#[derive(Serialize)]
+pub struct CalendarWeek {
+    pub month: String,
+    pub days: Vec<CalendarDay>,
+}
+
+/// One day of a calendar week: its `M/D` date, whether it is a past (ghosted)
+/// day, and the ids of the films playing that day. The ids are foreign keys into
+/// the film list (see `film_flag`); the client resolves them to titles, so a
+/// hidden film disappears from the calendar too.
 #[derive(Serialize)]
 pub struct CalendarDay {
     // ISO date ("2026-09-05") — matches each film's FlagDay.key so the calendar
@@ -177,16 +187,15 @@ pub struct CalendarDay {
     pub film_ids: Vec<u32>,
 }
 
-/// Build the 4-week calendar grid (7 columns × 4 rows) starting at the Sunday of
-/// the week containing `now`. Each cell lists the ids of the films playing that
-/// day (in soonest-first film order); days before today are ghosted.
-pub fn build_calendar(films: &[FilmSchedule], now: DateTime<Utc>) -> Vec<CalendarDay> {
+/// Build the calendar as Sunday–Saturday weeks, keeping only weeks that contain
+/// at least one film day (so barren weeks and months are skipped entirely). Each
+/// kept week carries all seven of its days and the month it belongs to: the month
+/// that begins within the week if one does, otherwise the single month it sits in.
+/// A film's id is its index in `films`, matching `film_flag` and the client's key.
+pub fn build_calendar(films: &[FilmSchedule], now: DateTime<Utc>) -> Vec<CalendarWeek> {
     let today = now.date_naive();
-    let offset = today.weekday().num_days_from_sunday() as i64;
-    let start = today - Duration::days(offset);
 
-    // business date (YYYY-MM-DD) -> film ids, accumulated in film order. A film's
-    // id is its index here, matching `film_flag`'s id and the client's Dict key.
+    // business date (YYYY-MM-DD) -> film ids, accumulated in film order.
     let mut by_date: HashMap<String, Vec<u32>> = HashMap::new();
     for (i, film) in films.iter().enumerate() {
         for (date, _) in &film.dates {
@@ -194,18 +203,53 @@ pub fn build_calendar(films: &[FilmSchedule], now: DateTime<Utc>) -> Vec<Calenda
         }
     }
 
-    (0..28)
-        .map(|i| {
-            let day = start + Duration::days(i);
-            let iso = day.format("%Y-%m-%d").to_string();
-            CalendarDay {
-                date: format!("{}/{}", day.month(), day.day()),
-                ghosted: day < today,
-                film_ids: by_date.get(&iso).cloned().unwrap_or_default(),
-                key: iso,
-            }
-        })
-        .collect()
+    // The film days, as NaiveDates; the calendar spans the week of the earliest
+    // through the week of the latest.
+    let film_days: Vec<NaiveDate> = by_date
+        .keys()
+        .filter_map(|d| NaiveDate::parse_from_str(d, "%Y-%m-%d").ok())
+        .collect();
+    let (Some(first), Some(last)) = (film_days.iter().min(), film_days.iter().max()) else {
+        return Vec::new();
+    };
+
+    let sunday = |d: NaiveDate| d - Duration::days(d.weekday().num_days_from_sunday() as i64);
+    let mut week_start = sunday(*first);
+    let last_week_start = sunday(*last);
+
+    let mut weeks = Vec::new();
+    while week_start <= last_week_start {
+        let days: Vec<CalendarDay> = (0..7)
+            .map(|i| {
+                let day = week_start + Duration::days(i);
+                let iso = day.format("%Y-%m-%d").to_string();
+                CalendarDay {
+                    date: format!("{}/{}", day.month(), day.day()),
+                    ghosted: day < today,
+                    film_ids: by_date.get(&iso).cloned().unwrap_or_default(),
+                    key: iso,
+                }
+            })
+            .collect();
+
+        if days.iter().any(|d| !d.film_ids.is_empty()) {
+            weeks.push(CalendarWeek {
+                month: week_month(week_start),
+                days,
+            });
+        }
+        week_start += Duration::days(7);
+    }
+    weeks
+}
+
+/// The month label for a week beginning on `week_start` (a Sunday): the month that
+/// begins within the week (some day is the 1st), else the month the week sits in.
+fn week_month(week_start: NaiveDate) -> String {
+    let month_begins = (0..7)
+        .map(|i| week_start + Duration::days(i))
+        .find(|d| d.day() == 1);
+    month_begins.unwrap_or(week_start).format("%B").to_string()
 }
 #[derive(Serialize)]
 struct FilmFlag {
@@ -311,6 +355,8 @@ const STYLE: &str = r#"
   .tab .icon { width: 1em; height: 1em; }
   .tab.active { background: var(--ink); color: var(--cream); border-color: var(--ink); }
   .calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.4rem; }
+  .calendar-month { grid-column: 1 / -1; font-size: 1.1rem; font-variant: small-caps;
+                    margin: 0.8rem 0 0.1rem; }
   .calendar-day { border: 1px solid #ddd; border-radius: 6px; padding: 0.4rem;
              min-height: 5rem; font-size: 0.85rem; }
   .calendar-day.ghost { opacity: 0.45; }

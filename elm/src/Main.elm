@@ -30,6 +30,16 @@ type alias Day =
     }
 
 
+{-| One Sunday–Saturday calendar week: the month it heads under and its days.
+Rust omits weeks with no films; the view additionally drops weeks whose films are
+all hidden, and heads each month once.
+-}
+type alias Week =
+    { month : String
+    , days : List Day
+    }
+
+
 type Tab
     = ListTab
     | CalendarTab
@@ -37,7 +47,7 @@ type Tab
 
 type alias Model =
     { films : Dict Int Film
-    , calendar : List Day
+    , calendar : List Week
     , tab : Tab
 
     -- (filmId, dayKey) pairs whose showtimes are expanded in the calendar. Per
@@ -102,6 +112,13 @@ calendarDayDecoder =
         (D.field "filmIds" (D.list D.int))
 
 
+weekDecoder : D.Decoder Week
+weekDecoder =
+    D.map2 Week
+        (D.field "month" D.string)
+        (D.field "days" (D.list calendarDayDecoder))
+
+
 init : D.Value -> ( Model, Cmd Msg )
 init flags =
     let
@@ -109,7 +126,7 @@ init flags =
             Result.withDefault [] (D.decodeValue (D.field "films" (D.list filmDecoder)) flags)
 
         calendar =
-            Result.withDefault [] (D.decodeValue (D.field "calendar" (D.list calendarDayDecoder)) flags)
+            Result.withDefault [] (D.decodeValue (D.field "calendar" (D.list weekDecoder)) flags)
     in
     ( { films = Dict.fromList pairs
       , calendar = calendar
@@ -195,9 +212,48 @@ tabButton active msg icon label =
         [ icon, span [] [ text label ] ]
 
 
-viewCalendar : Dict Int Film -> Set ( Int, String ) -> List Day -> Html Msg
-viewCalendar films calendarOpen days =
-    div [ class "calendar" ] (List.map (viewDay films calendarOpen) days)
+viewCalendar : Dict Int Film -> Set ( Int, String ) -> List Week -> Html Msg
+viewCalendar films calendarOpen weeks =
+    let
+        shown =
+            List.filter (weekHasVisibleFilm films) weeks
+    in
+    div [ class "calendar" ] (weeksWithHeaders films calendarOpen Nothing shown)
+
+
+{-| True when some day in the week has a film that is still visible. -}
+weekHasVisibleFilm : Dict Int Film -> Week -> Bool
+weekHasVisibleFilm films w =
+    List.any (\d -> List.any (filmVisible films) d.filmIds) w.days
+
+
+filmVisible : Dict Int Film -> Int -> Bool
+filmVisible films id =
+    Dict.get id films |> Maybe.map .visible |> Maybe.withDefault False
+
+
+{-| Render the shown weeks in order, emitting a month header before a week whose
+month differs from the previous shown week's — so each month heads exactly once.
+-}
+weeksWithHeaders : Dict Int Film -> Set ( Int, String ) -> Maybe String -> List Week -> List (Html Msg)
+weeksWithHeaders films calendarOpen lastMonth weeks =
+    case weeks of
+        [] ->
+            []
+
+        w :: rest ->
+            let
+                header =
+                    if Just w.month == lastMonth then
+                        []
+
+                    else
+                        [ div [ class "calendar-month" ] [ text w.month ] ]
+
+                cells =
+                    List.map (viewDay films calendarOpen) w.days
+            in
+            header ++ cells ++ weeksWithHeaders films calendarOpen (Just w.month) rest
 
 
 viewDay : Dict Int Film -> Set ( Int, String ) -> Day -> Html Msg

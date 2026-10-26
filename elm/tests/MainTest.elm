@@ -41,29 +41,40 @@ film id title timeLabel =
         ]
 
 
-calDay : String -> String -> Bool -> List Int -> E.Value
-calDay key date ghosted filmIds =
+calendarDay : String -> String -> List Int -> E.Value
+calendarDay key date filmIds =
     E.object
         [ ( "key", E.string key )
         , ( "date", E.string date )
-        , ( "ghosted", E.bool ghosted )
+        , ( "ghosted", E.bool False )
         , ( "filmIds", E.list E.int filmIds )
         ]
 
 
-flags : E.Value
-flags =
-    E.object
-        [ ( "films", E.list identity [ film 0 "Alpha" "4:00 PM", film 1 "Beta" "9:00 PM" ] )
+week : String -> List E.Value -> E.Value
+week month days =
+    E.object [ ( "month", E.string month ), ( "days", E.list identity days ) ]
 
-        -- Both films play 9/5; the calendar resolves them via the films dict.
-        , ( "calendar", E.list identity [ calDay "2026-08-30" "8/30" True [], calDay "2026-09-05" "9/5" False [ 0, 1 ] ] )
-        ]
+
+modelFrom : List E.Value -> List E.Value -> Main.Model
+modelFrom films calendar =
+    Tuple.first
+        (init
+            (E.object
+                [ ( "films", E.list identity films )
+                , ( "calendar", E.list identity calendar )
+                ]
+            )
+        )
 
 
 start : Main.Model
 start =
-    Tuple.first (init flags)
+    -- Both films play 9/5, in one September week; the calendar resolves them via
+    -- the films dict.
+    modelFrom
+        [ film 0 "Alpha" "4:00 PM", film 1 "Beta" "9:00 PM" ]
+        [ week "September" [ calendarDay "2026-09-05" "9/5" [ 0, 1 ] ] ]
 
 
 suite : Test
@@ -164,5 +175,52 @@ suite =
                         , Query.has [ class "runtime" ]
                         -- film 1 on the same day stays closed
                         , Query.hasNot [ class "time", text "9:00 PM" ]
+                        ]
+        , test "month headers appear per non-adjacent month, none for the empty months between" <|
+            \_ ->
+                modelFrom
+                    [ film 0 "Alpha" "4:00 PM", film 1 "Beta" "9:00 PM" ]
+                    [ week "September" [ calendarDay "2026-09-07" "9/7" [ 0 ] ]
+                    , week "December" [ calendarDay "2026-12-17" "12/17" [ 1 ] ]
+                    ]
+                    |> update (SetTab CalendarTab)
+                    |> Tuple.first
+                    |> view
+                    |> Query.fromHtml
+                    |> Expect.all
+                        [ Query.has [ class "calendar-month", text "September" ]
+                        , Query.has [ class "calendar-month", text "December" ]
+                        , Query.findAll [ class "calendar-month" ] >> Query.count (Expect.equal 2)
+                        ]
+        , test "a month with several shown weeks is headed only once" <|
+            \_ ->
+                modelFrom
+                    [ film 0 "Alpha" "4:00 PM", film 1 "Beta" "9:00 PM" ]
+                    [ week "September" [ calendarDay "2026-09-07" "9/7" [ 0 ] ]
+                    , week "September" [ calendarDay "2026-09-14" "9/14" [ 1 ] ]
+                    ]
+                    |> update (SetTab CalendarTab)
+                    |> Tuple.first
+                    |> view
+                    |> Query.fromHtml
+                    |> Query.findAll [ class "calendar-month" ]
+                    |> Query.count (Expect.equal 1)
+        , test "hiding a week's only film drops the week and its month header" <|
+            \_ ->
+                modelFrom
+                    [ film 0 "Alpha" "4:00 PM", film 1 "Beta" "9:00 PM" ]
+                    [ week "September" [ calendarDay "2026-09-07" "9/7" [ 0 ] ]
+                    , week "December" [ calendarDay "2026-12-17" "12/17" [ 1 ] ]
+                    ]
+                    |> update (HideFilm 1)
+                    |> Tuple.first
+                    |> update (SetTab CalendarTab)
+                    |> Tuple.first
+                    |> view
+                    |> Query.fromHtml
+                    |> Expect.all
+                        [ Query.has [ class "calendar-month", text "September" ]
+                        , Query.hasNot [ class "calendar-month", text "December" ]
+                        , Query.hasNot [ text "Beta" ]
                         ]
         ]
