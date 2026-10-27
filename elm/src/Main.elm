@@ -1,4 +1,4 @@
-module Main exposing (CalDay, Film, Model, Msg(..), Tab(..), init, main, update, view)
+module Main exposing (Day, Film, Model, Msg(..), Tab(..), init, main, update, view)
 
 import Browser
 import Dict exposing (Dict)
@@ -6,9 +6,10 @@ import Html exposing (Html, a, article, button, div, h2, img, span, text)
 import Html.Attributes exposing (alt, class, classList, href, rel, src, target)
 import Html.Events exposing (onClick)
 import Json.Decode as D
+import Set exposing (Set)
+import Showtimes
 import Svg
 import Svg.Attributes as SA
-import Toggle
 
 
 type alias Film =
@@ -16,14 +17,26 @@ type alias Film =
     , hero : String
     , url : String
     , rt : String
-    , toggle : Toggle.Model
+    , showtimes : Showtimes.Model
+    , visible : Bool
     }
 
 
-type alias CalDay =
-    { date : String
+type alias Day =
+    { key : String
+    , date : String
     , ghosted : Bool
-    , films : List String
+    , filmIds : List Int
+    }
+
+
+{-| One Sunday–Saturday calendar week: the month it heads under and its days.
+Rust omits weeks with no films; the view additionally drops weeks whose films are
+all hidden, and heads each month once.
+-}
+type alias Week =
+    { month : String
+    , days : List Day
     }
 
 
@@ -33,43 +46,77 @@ type Tab
 
 
 type alias Model =
-    { order : List String
-    , films : Dict String Film
-    , calendar : List CalDay
+    { films : Dict Int Film
+    , calendar : List Week
     , tab : Tab
+
+    -- (filmId, dayKey) pairs whose showtimes are expanded in the calendar. Per
+    -- cell, so a film's days (and list mode) toggle independently.
+    , calendarOpen : Set ( Int, String )
     }
 
 
 type Msg
-    = RemoveFilm String
-    | ToggleMsg String Toggle.Msg
+    = HideFilm Int
+    | ShowtimesMsg Int Showtimes.Msg
+    | ToggleCalendarFilm Int String
     | SetTab Tab
 
 
 
--- INIT / FLAGS
+-- INIT
 
 
-filmDecoder : D.Decoder ( String, Film )
+filmDecoder : D.Decoder ( Int, Film )
 filmDecoder =
-    D.map6
-        (\id title hero url rt days ->
-            ( id, Film title hero url rt (Toggle.init days) )
+    D.map7
+        (\id title hero url rt runtime days ->
+            ( id
+            , { title = title
+              , hero = hero
+              , url = url
+              , rt = rt
+              , showtimes = Showtimes.init runtime days
+              , visible = True
+              }
+            )
         )
-        (D.field "id" D.string)
+        (D.field "id" D.int)
         (D.field "title" D.string)
         (D.field "hero" D.string)
         (D.field "url" D.string)
         (D.field "rt" D.string)
-        Toggle.daysDecoder
+        (D.field "runtime" D.string)
+        (D.field "days" (D.list showtimeDayDecoder))
 
 
-calDayDecoder : D.Decoder CalDay
-calDayDecoder =
-    D.map3 CalDay
+slotDecoder : D.Decoder Showtimes.Slot
+slotDecoder =
+    D.map2 Showtimes.Slot (D.field "label" D.string) (D.field "href" D.string)
+
+
+showtimeDayDecoder : D.Decoder Showtimes.Day
+showtimeDayDecoder =
+    D.map3 Showtimes.Day
+        (D.field "key" D.string)
+        (D.field "date" D.string)
+        (D.field "times" (D.list slotDecoder))
+
+
+calendarDayDecoder : D.Decoder Day
+calendarDayDecoder =
+    D.map4 Day
+        (D.field "key" D.string)
         (D.field "date" D.string)
         (D.field "ghosted" D.bool)
-        (D.field "films" (D.list D.string))
+        (D.field "filmIds" (D.list D.int))
+
+
+weekDecoder : D.Decoder Week
+weekDecoder =
+    D.map2 Week
+        (D.field "month" D.string)
+        (D.field "days" (D.list calendarDayDecoder))
 
 
 init : D.Value -> ( Model, Cmd Msg )
@@ -79,12 +126,12 @@ init flags =
             Result.withDefault [] (D.decodeValue (D.field "films" (D.list filmDecoder)) flags)
 
         calendar =
-            Result.withDefault [] (D.decodeValue (D.field "calendar" (D.list calDayDecoder)) flags)
+            Result.withDefault [] (D.decodeValue (D.field "calendar" (D.list weekDecoder)) flags)
     in
-    ( { order = List.map Tuple.first pairs
-      , films = Dict.fromList pairs
+    ( { films = Dict.fromList pairs
       , calendar = calendar
       , tab = ListTab
+      , calendarOpen = Set.empty
       }
     , Cmd.none
     )
@@ -97,21 +144,34 @@ init flags =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        RemoveFilm id ->
+        HideFilm id ->
             ( { model
-                | films = Dict.remove id model.films
-                , order = List.filter (\i -> i /= id) model.order
+                | films = Dict.update id (Maybe.map (\f -> { f | visible = False })) model.films
               }
             , Cmd.none
             )
 
-        ToggleMsg id sub ->
+        ShowtimesMsg id sub ->
             ( { model
                 | films =
-                    Dict.update id (Maybe.map (\f -> { f | toggle = Toggle.update sub f.toggle })) model.films
+                    Dict.update id (Maybe.map (\f -> { f | showtimes = Showtimes.update sub f.showtimes })) model.films
               }
             , Cmd.none
             )
+
+        ToggleCalendarFilm id key ->
+            let
+                cell =
+                    ( id, key )
+
+                calendarOpen =
+                    if Set.member cell model.calendarOpen then
+                        Set.remove cell model.calendarOpen
+
+                    else
+                        Set.insert cell model.calendarOpen
+            in
+            ( { model | calendarOpen = calendarOpen }, Cmd.none )
 
         SetTab tab ->
             ( { model | tab = tab }, Cmd.none )
@@ -128,10 +188,13 @@ view model =
         , case model.tab of
             ListTab ->
                 div []
-                    (List.filterMap (\id -> Maybe.map (viewFilm id) (Dict.get id model.films)) model.order)
+                    (Dict.toList model.films
+                        |> List.filter (\( _, f ) -> f.visible)
+                        |> List.map (\( id, f ) -> viewFilm id f)
+                    )
 
             CalendarTab ->
-                viewCalendar model.calendar
+                viewCalendar model.films model.calendarOpen model.calendar
         ]
 
 
@@ -149,39 +212,111 @@ tabButton active msg icon label =
         [ icon, span [] [ text label ] ]
 
 
-viewCalendar : List CalDay -> Html Msg
-viewCalendar days =
-    div [ class "calendar" ] (List.map viewCalDay days)
+viewCalendar : Dict Int Film -> Set ( Int, String ) -> List Week -> Html Msg
+viewCalendar films calendarOpen weeks =
+    let
+        shown =
+            List.filter (weekHasVisibleFilm films) weeks
+    in
+    div [ class "calendar" ] (weeksWithHeaders films calendarOpen Nothing shown)
 
 
-viewCalDay : CalDay -> Html Msg
-viewCalDay d =
-    div [ class "cal-day", classList [ ( "ghost", d.ghosted ) ] ]
-        (div [ class "cal-date" ] [ text d.date ]
-            :: List.map (\t -> div [ class "cal-film" ] [ text t ]) d.films
+{-| True when some day in the week has a film that is still visible. -}
+weekHasVisibleFilm : Dict Int Film -> Week -> Bool
+weekHasVisibleFilm films w =
+    List.any (\d -> List.any (filmVisible films) d.filmIds) w.days
+
+
+filmVisible : Dict Int Film -> Int -> Bool
+filmVisible films id =
+    Dict.get id films |> Maybe.map .visible |> Maybe.withDefault False
+
+
+{-| Render the shown weeks in order, emitting a month header before a week whose
+month differs from the previous shown week's — so each month heads exactly once.
+-}
+weeksWithHeaders : Dict Int Film -> Set ( Int, String ) -> Maybe String -> List Week -> List (Html Msg)
+weeksWithHeaders films calendarOpen lastMonth weeks =
+    case weeks of
+        [] ->
+            []
+
+        w :: rest ->
+            let
+                header =
+                    if Just w.month == lastMonth then
+                        []
+
+                    else
+                        [ div [ class "calendar-month" ] [ text w.month ] ]
+
+                cells =
+                    List.map (viewDay films calendarOpen) w.days
+            in
+            header ++ cells ++ weeksWithHeaders films calendarOpen (Just w.month) rest
+
+
+viewDay : Dict Int Film -> Set ( Int, String ) -> Day -> Html Msg
+viewDay films calendarOpen d =
+    div [ class "calendar-day", classList [ ( "ghost", d.ghosted ) ] ]
+        (div [ class "calendar-date" ] [ text d.date ]
+            :: List.filterMap (viewCalendarFilm films calendarOpen d.key) d.filmIds
         )
 
 
-viewFilm : String -> Film -> Html Msg
+{-| One film in a calendar cell: title above a tiny hero above a "showtimes"
+link that toggles that day's times + runtime. The per-cell open state lives in
+`calendarOpen`, so the link click routes to `ToggleCalendarFilm` (not the shared
+`Film.showtimes`). Dropped when hidden or unknown, so a hidden film leaves too.
+-}
+viewCalendarFilm : Dict Int Film -> Set ( Int, String ) -> String -> Int -> Maybe (Html Msg)
+viewCalendarFilm films calendarOpen key id =
+    case Dict.get id films of
+        Just film ->
+            if film.visible then
+                let
+                    fs =
+                        film.showtimes
+
+                    scoped =
+                        { fs | scope = Showtimes.SingleDay key, open = Set.member ( id, key ) calendarOpen }
+                in
+                Just <|
+                    div [ class "calendar-film" ]
+                        [ div [ class "calendar-title" ] [ text film.title ]
+                        , div [ class "hero-wrap" ]
+                            [ a [ class "hero-link", href film.url, target "_blank", rel "noopener" ]
+                                [ img [ class "calendar-hero", src film.hero, alt film.title ] [] ]
+                            , button [ class "remove", onClick (HideFilm id) ] [ text "\u{2717}" ]
+                            ]
+                        , a [ class "rt", href film.rt, target "_blank", rel "noopener" ] [ text "rt" ]
+                        , Html.map (\_ -> ToggleCalendarFilm id key) (Showtimes.view scoped)
+                        ]
+
+            else
+                Nothing
+
+        Nothing ->
+            Nothing
+
+
+viewFilm : Int -> Film -> Html Msg
 viewFilm id film =
     article [ class "film" ]
         [ div [ class "hero-wrap" ]
             [ a [ class "hero-link", href film.url, target "_blank", rel "noopener" ]
                 [ img [ class "hero", src film.hero, alt film.title ] [] ]
-            , button [ class "remove", onClick (RemoveFilm id) ] [ text "\u{2717}" ]
+            , button [ class "remove", onClick (HideFilm id) ] [ text "\u{2717}" ]
             ]
         , div [ class "film-main" ]
             [ h2 []
                 [ a [ href film.url, target "_blank", rel "noopener" ] [ text film.title ] ]
             , a [ class "rt", href film.rt, target "_blank", rel "noopener" ]
                 [ text "check rotten tomatoes" ]
-            , Html.map (ToggleMsg id) (Toggle.view film.toggle)
+            , Html.map (ShowtimesMsg id) (Showtimes.view film.showtimes)
             ]
         ]
 
-
-
--- ICONS (Font Awesome Free, inlined)
 
 
 iconList : Html msg

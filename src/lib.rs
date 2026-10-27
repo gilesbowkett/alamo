@@ -31,6 +31,9 @@ pub struct Film {
     pub hero_uri: String,
     /// True when this presentation is an `/event/` page rather than a `/show/`.
     pub is_event: bool,
+    /// Runtime in whole minutes. `None` from the market feed (which never sets it);
+    /// populated from the per-presentation endpoint. See `parse_runtime`.
+    pub runtime_minutes: Option<u32>,
 }
 
 /// One showtime session from the market feed. `presentation_slug` joins it to
@@ -68,6 +71,9 @@ struct RawShow {
     title: String,
     #[serde(rename = "landscapeHeroImage")]
     landscape_hero_image: RawImage,
+    // Null in the market feed; populated by the per-presentation endpoint.
+    #[serde(rename = "runtimeMinutes", default)]
+    runtime_minutes: Option<u32>,
 }
 #[derive(Deserialize)]
 struct RawImage {
@@ -104,6 +110,24 @@ pub fn fmt_time(clt: &str) -> String {
     }
 }
 
+/// Format a runtime in minutes as e.g. "1 hour 54 minutes". `None` or 0 → "" so
+/// the UI can omit the runtime entirely. Units are singularized at 1.
+pub fn fmt_runtime(minutes: Option<u32>) -> String {
+    let m = match minutes {
+        Some(m) if m > 0 => m,
+        _ => return String::new(),
+    };
+    let (hours, mins) = (m / 60, m % 60);
+    let mut parts = Vec::new();
+    if hours > 0 {
+        parts.push(format!("{hours} hour{}", if hours == 1 { "" } else { "s" }));
+    }
+    if mins > 0 {
+        parts.push(format!("{mins} minute{}", if mins == 1 { "" } else { "s" }));
+    }
+    parts.join(" ")
+}
+
 /// Escape text for safe interpolation into HTML element content / double-quoted attrs.
 pub fn html_escape(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
@@ -135,56 +159,116 @@ const INIT_JS: &str = "<script>\n\
 #[derive(Serialize)]
 struct PageFlags {
     films: Vec<FilmFlag>,
-    calendar: Vec<CalDay>,
+    calendar: Vec<CalendarWeek>,
 }
 
-/// One cell of the 4-week calendar grid: its `M/D` date, whether it is a past
-/// (ghosted) day, and the titles playing that day.
+/// One Sunday–Saturday week of the calendar: the `month` it belongs to (its
+/// header label) and its seven days. A week is only emitted if at least one of
+/// its days has a film; a straddling week belongs to the month that begins within
+/// it. The client drops weeks whose films are all hidden and dedups month headers.
 #[derive(Serialize)]
-pub struct CalDay {
+pub struct CalendarWeek {
+    pub month: String,
+    pub days: Vec<CalendarDay>,
+}
+
+/// One day of a calendar week: its `M/D` date, whether it is a past (ghosted)
+/// day, and the ids of the films playing that day. The ids are foreign keys into
+/// the film list (see `film_flag`); the client resolves them to titles, so a
+/// hidden film disappears from the calendar too.
+#[derive(Serialize)]
+pub struct CalendarDay {
+    // ISO date ("2026-09-05") — matches each film's FlagDay.key so the calendar
+    // can scope a film's Showtimes to this day. `date` is the "M/D" display.
+    pub key: String,
     pub date: String,
     pub ghosted: bool,
-    pub films: Vec<String>,
+    #[serde(rename = "filmIds")]
+    pub film_ids: Vec<u32>,
 }
 
-/// Build the 4-week calendar grid (7 columns × 4 rows) starting at the Sunday of
-/// the week containing `now`. Each cell lists the titles playing that day (in
-/// soonest-first film order); days before today are ghosted.
-pub fn build_calendar(films: &[FilmSchedule], now: DateTime<Utc>) -> Vec<CalDay> {
+/// Build the calendar as Sunday–Saturday weeks, keeping only weeks that contain
+/// at least one film day (so barren weeks and months are skipped entirely). Each
+/// kept week carries all seven of its days and the month it belongs to: the month
+/// that begins within the week if one does, otherwise the single month it sits in.
+/// A film's id is its index in `films`, matching `film_flag` and the client's key.
+pub fn build_calendar(films: &[FilmSchedule], now: DateTime<Utc>) -> Vec<CalendarWeek> {
     let today = now.date_naive();
-    let offset = today.weekday().num_days_from_sunday() as i64;
-    let start = today - Duration::days(offset);
 
-    // business date (YYYY-MM-DD) -> titles, accumulated in film order.
-    let mut by_date: HashMap<String, Vec<String>> = HashMap::new();
-    for film in films {
+    // business date (YYYY-MM-DD) -> film ids, accumulated in film order.
+    let mut by_date: HashMap<String, Vec<u32>> = HashMap::new();
+    for (i, film) in films.iter().enumerate() {
         for (date, _) in &film.dates {
-            by_date.entry(date.clone()).or_default().push(film.film.title.clone());
+            by_date.entry(date.clone()).or_default().push(i as u32);
         }
     }
 
-    (0..28)
-        .map(|i| {
-            let day = start + Duration::days(i);
-            CalDay {
-                date: format!("{}/{}", day.month(), day.day()),
-                ghosted: day < today,
-                films: by_date.get(&day.format("%Y-%m-%d").to_string()).cloned().unwrap_or_default(),
-            }
-        })
-        .collect()
+    // The film days, as NaiveDates; the calendar spans the week of the earliest
+    // through the week of the latest.
+    let film_days: Vec<NaiveDate> = by_date
+        .keys()
+        .filter_map(|d| NaiveDate::parse_from_str(d, "%Y-%m-%d").ok())
+        .collect();
+    let (Some(first), Some(last)) = (film_days.iter().min(), film_days.iter().max()) else {
+        return Vec::new();
+    };
+
+    let sunday = |d: NaiveDate| d - Duration::days(d.weekday().num_days_from_sunday() as i64);
+    let mut week_start = sunday(*first);
+    let last_week_start = sunday(*last);
+
+    let mut weeks = Vec::new();
+    while week_start <= last_week_start {
+        let days: Vec<CalendarDay> = (0..7)
+            .map(|i| {
+                let day = week_start + Duration::days(i);
+                let iso = day.format("%Y-%m-%d").to_string();
+                CalendarDay {
+                    date: format!("{}/{}", day.month(), day.day()),
+                    ghosted: day < today,
+                    film_ids: by_date.get(&iso).cloned().unwrap_or_default(),
+                    key: iso,
+                }
+            })
+            .collect();
+
+        if days.iter().any(|d| !d.film_ids.is_empty()) {
+            weeks.push(CalendarWeek {
+                month: week_month(week_start),
+                days,
+            });
+        }
+        week_start += Duration::days(7);
+    }
+    weeks
+}
+
+/// The month label for a week beginning on `week_start` (a Sunday): the month that
+/// begins within the week (some day is the 1st), else the month the week sits in.
+fn week_month(week_start: NaiveDate) -> String {
+    let month_begins = (0..7)
+        .map(|i| week_start + Duration::days(i))
+        .find(|d| d.day() == 1);
+    month_begins.unwrap_or(week_start).format("%B").to_string()
 }
 #[derive(Serialize)]
 struct FilmFlag {
-    id: String,
+    // The film's id: its index in the (soonest-first) film list. Doubles as the
+    // client's Dict key and the foreign key the calendar cells reference.
+    id: u32,
     title: String,
     hero: String,
     url: String,
     rt: String,
+    // Pre-formatted runtime, e.g. "1 hour 54 minutes"; "" when unknown.
+    runtime: String,
     days: Vec<FlagDay>,
 }
 #[derive(Serialize)]
 struct FlagDay {
+    // ISO business date ("2026-09-05") — the stable key a calendar cell scopes a
+    // film's Showtimes to. `date` is the human display ("Sat Sep 5").
+    key: String,
     date: String,
     times: Vec<FlagSlot>,
 }
@@ -196,12 +280,13 @@ struct FlagSlot {
 
 /// Build one film's flags: its header URL (`presentation_url`), Rotten Tomatoes
 /// search, and showtimes (each linking to the header URL with the day appended).
-fn film_flag(film: &FilmSchedule) -> FilmFlag {
+fn film_flag(id: u32, film: &FilmSchedule) -> FilmFlag {
     let base = presentation_url(&film.film);
     let days = film
         .dates
         .iter()
         .map(|(date, times)| FlagDay {
+            key: date.clone(),
             date: fmt_date(date),
             times: times
                 .iter()
@@ -213,10 +298,11 @@ fn film_flag(film: &FilmSchedule) -> FilmFlag {
         })
         .collect();
     FilmFlag {
-        id: film.film.slug.clone(),
+        id,
         title: film.film.title.clone(),
         hero: film.film.hero_uri.clone(),
         rt: format!("https://www.rottentomatoes.com/search?search={}", film.film.slug),
+        runtime: fmt_runtime(film.film.runtime_minutes),
         url: base,
         days,
     }
@@ -241,7 +327,7 @@ pub fn render_page(films: &[FilmSchedule], now: DateTime<Utc>) -> String {
     // The container Elm app renders every card from these flags and owns the
     // per-film remove/toggle interactions.
     let flags = PageFlags {
-        films: films.iter().map(film_flag).collect(),
+        films: films.iter().enumerate().map(|(i, f)| film_flag(i as u32, f)).collect(),
         calendar: build_calendar(films, now),
     };
     let flags_json = serde_json::to_string(&flags).expect("flags serialize");
@@ -269,11 +355,16 @@ const STYLE: &str = r#"
   .tab .icon { width: 1em; height: 1em; }
   .tab.active { background: var(--ink); color: var(--cream); border-color: var(--ink); }
   .calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.4rem; }
-  .cal-day { border: 1px solid #ddd; border-radius: 6px; padding: 0.4rem;
+  .calendar-month { grid-column: 1 / -1; font-size: 1.1rem; font-variant: small-caps;
+                    margin: 0.8rem 0 0.1rem; }
+  .calendar-day { border: 1px solid #ddd; border-radius: 6px; padding: 0.4rem;
              min-height: 5rem; font-size: 0.85rem; }
-  .cal-day.ghost { opacity: 0.45; }
-  .cal-date { font-variant-numeric: tabular-nums; color: #666; margin: 0 0 0.3rem; }
-  .cal-film { margin: 0 0 0.2rem; }
+  .calendar-day.ghost { opacity: 0.45; }
+  .calendar-date { font-variant-numeric: tabular-nums; color: #666; margin: 0 0 0.3rem; }
+  .calendar-film { margin: 0 0 0.6rem; }
+  .calendar-title { font-weight: 600; margin: 0 0 0.2rem; }
+  .calendar-hero { display: block; width: 96%; height: auto; border-radius: 4px;
+              background: #eee; margin: 0 0 0.25rem; }
   .film { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem 1.25rem;
           align-items: start; margin: 0 0 2.5rem; }
   .film-main { min-width: 0; }
@@ -287,17 +378,26 @@ const STYLE: &str = r#"
             font-size: 1rem; line-height: 1; cursor: pointer;
             display: flex; align-items: center; justify-content: center; }
   .remove:hover { background: #efefef; }
+  .calendar-film .remove { width: 1.1rem; height: 1.1rem; font-size: 0.7rem;
+                           top: 0.25rem; left: 0.25rem; }
   .film h2 { font-size: 1.25rem; margin: 0 0 0.5rem; }
   .film h2 a { color: inherit; text-decoration: none; }
   .rt { font-variant: small-caps; color: #d00; text-decoration: none;
         font-size: 0.8rem; margin-right: 0.75rem; }
+  .rt:hover { color: #a80000; }
+  .rt:active { color: #000; }
   .toggle { font-variant: small-caps; color: #06c; text-decoration: none;
             font-size: 0.8rem; cursor: pointer; }
+  .toggle:hover { color: #004d99; }
+  .toggle:active { color: #000; }
   /* Elm's toggle view root vanishes from layout so the toggle sits inline next
      to .rt while the showtimes drop to their own line below. */
   .contents { display: contents; }
   .showtimes { display: flex; flex-direction: column; gap: 0.4rem;
                margin-top: 0.6rem; }
+  .runtime { font-variant: small-caps; color: #666; font-size: 0.8rem;
+             margin-left: 0.75rem; }
+  .calendar-film .runtime { display: block; margin-left: 0; margin-bottom: 6px; }
   .day { display: grid; grid-template-columns: 6.5rem 1fr; align-items: baseline;
          gap: 0.4rem 0.6rem; }
   .date { color: #444; }
@@ -329,6 +429,14 @@ pub fn is_dtla_future(session: &Session, now: DateTime<Utc>) -> bool {
 /// with no future DTLA session are dropped; the rest are ordered soonest-first.
 /// Propagates a JSON parse error rather than emitting a partial page.
 pub fn build_page(market_json: &str, now: DateTime<Utc>) -> Result<String, serde_json::Error> {
+    Ok(render_page(&schedule(market_json, now)?, now))
+}
+
+/// The parse/join/filter/sort half of the pipeline: the market feed JSON → the
+/// films to display (future DTLA only, soonest-first), without rendering. The I/O
+/// shell uses this to learn which films to display so it can fetch each one's
+/// runtime (absent from the market feed) before handing the lot to `render_page`.
+pub fn schedule(market_json: &str, now: DateTime<Utc>) -> Result<Vec<FilmSchedule>, serde_json::Error> {
     let films = parse_presentations(market_json)?;
     let sessions = parse_sessions(market_json)?;
 
@@ -345,7 +453,7 @@ pub fn build_page(market_json: &str, now: DateTime<Utc>) -> Result<String, serde
         }
     }
     sort_films(&mut schedules);
-    Ok(render_page(&schedules, now))
+    Ok(schedules)
 }
 
 /// Group sessions by their business date (ascending), with each day's showtimes
@@ -415,8 +523,18 @@ pub fn parse_presentations(json: &str) -> Result<Vec<Film>, serde_json::Error> {
             title: p.show.title,
             hero_uri: p.show.landscape_hero_image.uri,
             is_event: p.event.is_some(),
+            runtime_minutes: p.show.runtime_minutes,
         })
         .collect())
+}
+
+/// Extract a presentation's runtime (minutes) from a per-presentation feed
+/// response, keyed by its presentation slug. `Ok(None)` when the feed carries no
+/// runtime for that slug (absent presentation or null runtime) — that is the true
+/// value, not a failure. Propagates a JSON parse error.
+pub fn parse_runtime(json: &str, slug: &str) -> Result<Option<u32>, serde_json::Error> {
+    let films = parse_presentations(json)?;
+    Ok(films.into_iter().find(|f| f.slug == slug).and_then(|f| f.runtime_minutes))
 }
 
 /// The public Drafthouse URL for a film, scoped to the DTLA cinema. Event pages

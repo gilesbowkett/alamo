@@ -17,7 +17,9 @@ fn renders_every_film_in_the_market_feed() {
     // One entry per presentation with future DTLA sessions in the container's
     // flags — far more than the old featured feed's 8.
     assert!(html.contains("<div id=\"app\" data-flags=\""), "container mount present");
-    let films = html.matches("&quot;id&quot;:&quot;").count();
+    // Each film flag carries a numeric `id` (not quoted); the calendar's
+    // `filmIds` key doesn't match this needle.
+    let films = html.matches("&quot;id&quot;:").count();
     assert_eq!(films, 64, "every market presentation appears in the flags");
 
     // Titles that were NOT in the featured feed must now appear.

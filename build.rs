@@ -4,7 +4,9 @@
 use std::process::Command;
 
 fn main() {
-    println!("cargo:rerun-if-changed=elm/src/Main.elm");
+    // Watch the whole Elm source tree, not just Main.elm: Main imports Toggle, so
+    // a Toggle-only edit must still retrigger `elm make`.
+    println!("cargo:rerun-if-changed=elm/src");
     println!("cargo:rerun-if-changed=elm/elm.json");
 
     let out_dir = std::env::var("OUT_DIR").expect("OUT_DIR set by cargo");
